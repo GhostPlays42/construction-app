@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { Database } from "./database.types";
 
-// Refreshes the user's session on every request so they stay logged in.
+// Refreshes the user's session on every request so they stay logged in,
+// and keeps signed-out people on the sign-in screen.
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -28,7 +30,20 @@ export async function updateSession(request: NextRequest) {
 
   // Do not run code between createServerClient and getClaims(): it is what
   // refreshes an expired session.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const signedIn = Boolean(data?.claims);
+  const onLogin = request.nextUrl.pathname === "/login";
+
+  // Signed-out people only ever see the sign-in screen; signed-in people
+  // skip it. Redirects carry the refreshed session cookies with them.
+  if (signedIn === onLogin) {
+    const url = request.nextUrl.clone();
+    url.pathname = signedIn ? "/" : "/login";
+    url.search = "";
+    const redirect = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
 
   return response;
 }
