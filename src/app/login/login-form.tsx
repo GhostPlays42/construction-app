@@ -7,8 +7,11 @@ import { formatPhone, toE164 } from "@/lib/phone";
 
 const RESEND_SECONDS = 30;
 
-function friendlyError(message: string | undefined): string {
-  const m = (message ?? "").toLowerCase();
+function friendlyError(error: { message?: string; code?: string }): string {
+  if (error.code === "sms_send_failed") {
+    return "We couldn't send a text to this number. Ask your office to check it.";
+  }
+  const m = (error.message ?? "").toLowerCase();
   if (m.includes("phone_not_registered") || m.includes("signups not allowed")) {
     return "This number isn't set up yet. Ask your office to add you.";
   }
@@ -43,7 +46,7 @@ export function LoginForm() {
     const { error } = await createClient().auth.signInWithOtp({ phone: target });
     setBusy(false);
     if (error) {
-      setError(friendlyError(error.message));
+      setError(friendlyError(error));
       return false;
     }
     setResendIn(RESEND_SECONDS);
@@ -79,7 +82,7 @@ export function LoginForm() {
     });
     if (error) {
       setBusy(false);
-      setError(friendlyError(error.message));
+      setError(friendlyError(error));
       return;
     }
     router.replace("/");
