@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,7 +15,6 @@ function friendlyError(error: { message?: string; code?: string }): string {
 }
 
 export function EmailForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +37,8 @@ export function EmailForm() {
       setError(friendlyError(error));
       return;
     }
-    router.replace("/");
-    router.refresh();
+    // A full page load, so admins land on /verify exactly once.
+    window.location.replace("/");
   }
 
   const input =

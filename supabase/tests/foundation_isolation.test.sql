@@ -34,8 +34,10 @@ insert into public.certifications (company_id, employee_id, name, expires_on) va
 
 insert into public.platform_owners (user_id) values ('00000000-0000-0000-0000-0000000000c1');
 
+-- Everyone here has finished sign-in, including the authenticator app
+-- code for admins (aal2). admin_mfa.test.sql covers the aal1 case.
 create function pg_temp.login(uid uuid) returns void language sql as $$
-  select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+  select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated', 'aal', 'aal2')::text, true);
   set local role authenticated;
 $$;
 
