@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions";
 import { needsAppCode } from "@/lib/auth";
@@ -13,11 +14,16 @@ export default async function Home() {
 
   // Row level security returns nothing when the person is inactive or their
   // company is suspended, so a missing row means "no access".
-  const { data: me } = await supabase
-    .from("employees")
-    .select("full_name, role_key, companies(name)")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: me }, { data: owner }] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("full_name, role_key, companies(name)")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase.from("platform_owners").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
+  // The platform owner may not belong to any company.
+  if (!me && owner) redirect("/owner");
 
   const signOutButton = (
     <form action={signOut}>
@@ -51,6 +57,14 @@ export default async function Home() {
       <p className="text-lg text-zinc-600 dark:text-zinc-400">
         You&apos;re signed in. Your jobs and forms will show up here.
       </p>
+      {owner && (
+        <Link
+          href="/owner"
+          className="w-full rounded-xl bg-zinc-100 px-4 py-3 text-center text-lg font-medium dark:bg-zinc-800"
+        >
+          Owner view
+        </Link>
+      )}
       {signOutButton}
     </main>
   );
