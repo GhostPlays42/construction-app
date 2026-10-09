@@ -13,8 +13,17 @@ export type JobValues = {
   end_date: string;
   status: string;
   crew: string;
+  equipment: string;
 };
 type Person = { id: string; full_name: string; trade: string | null; is_active: boolean };
+type Machine = {
+  id: string;
+  name: string;
+  unit_number: string | null;
+  equipment_type: string | null;
+  down_for_repair: boolean;
+  is_active: boolean;
+};
 
 const input =
   "w-full rounded-xl border-2 border-zinc-300 bg-white px-4 py-3 text-xl text-zinc-900 outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
@@ -30,11 +39,13 @@ const STATUS_OPTIONS = [
 export function JobForm({
   action,
   people,
+  machines,
   initial,
   isNew,
 }: {
   action: (prev: JobFormState, fd: FormData) => Promise<JobFormState>;
   people: Person[];
+  machines: Machine[];
   initial: JobValues;
   isNew: boolean;
 }) {
@@ -42,6 +53,7 @@ export function JobForm({
   // After a failed save, keep what was entered.
   const v = state.values ?? initial;
   const crew = new Set(v.crew ? v.crew.split(",") : []);
+  const equipment = new Set(v.equipment ? v.equipment.split(",") : []);
 
   return (
     <form action={formAction} className="flex flex-col gap-3" noValidate>
@@ -133,6 +145,41 @@ export function JobForm({
               <span className="text-lg">{p.full_name}</span>
               <span className="text-base text-zinc-600 dark:text-zinc-400">
                 {[p.trade, p.is_active ? null : "Switched off"].filter(Boolean).join(" · ")}
+              </span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <fieldset className="mt-2 flex flex-col gap-2">
+        <legend className={`${label} mb-2`}>Equipment on this job</legend>
+        {machines.length === 0 && (
+          <p className="text-base text-zinc-600 dark:text-zinc-400">
+            Add equipment first, then come back to put it on this job.
+          </p>
+        )}
+        {machines.map((m) => (
+          <label
+            key={m.id}
+            className="flex items-center gap-3 rounded-xl border-2 border-zinc-200 p-3 has-[:checked]:border-amber-500 dark:border-zinc-800"
+          >
+            <input
+              type="checkbox"
+              name="equipment"
+              value={m.id}
+              defaultChecked={equipment.has(m.id)}
+              className="h-6 w-6 accent-amber-500"
+            />
+            <span className="flex flex-col">
+              <span className="text-lg">{m.unit_number ? `${m.unit_number} · ${m.name}` : m.name}</span>
+              <span className="text-base text-zinc-600 dark:text-zinc-400">
+                {[
+                  m.equipment_type,
+                  m.down_for_repair ? "Down for repair" : null,
+                  m.is_active ? null : "Switched off",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </span>
           </label>

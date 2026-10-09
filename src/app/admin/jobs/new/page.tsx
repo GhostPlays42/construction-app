@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
 import { saveJob } from "../actions";
 import { JobForm } from "../job-form";
-import { crewChoices } from "../people";
+import { crewChoices, equipmentChoices } from "../people";
 
 export const metadata: Metadata = { title: "Add job" };
 
 export default async function NewJobPage() {
   const { supabase } = await requireAdmin();
-  const people = await crewChoices(supabase, []);
+  const [people, machines] = await Promise.all([crewChoices(supabase, []), equipmentChoices(supabase, [])]);
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
@@ -16,6 +16,7 @@ export default async function NewJobPage() {
       <JobForm
         action={saveJob.bind(null, null)}
         people={people}
+        machines={machines}
         initial={{
           name: "",
           job_number: "",
@@ -25,6 +26,7 @@ export default async function NewJobPage() {
           end_date: "",
           status: "active",
           crew: "",
+          equipment: "",
         }}
         isNew
       />
