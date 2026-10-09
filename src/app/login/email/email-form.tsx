@@ -7,6 +7,9 @@ function friendlyError(error: { message?: string; code?: string }): string {
   if (error.code === "invalid_credentials") {
     return "That email or password isn't right.";
   }
+  if (error.code === "email_not_confirmed") {
+    return "Confirm your email first. Open the link we sent when you signed up.";
+  }
   const m = (error.message ?? "").toLowerCase();
   if (m.includes("rate") || m.includes("too many")) {
     return "Too many tries. Wait a minute, then try again.";

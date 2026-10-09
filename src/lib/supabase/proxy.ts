@@ -33,10 +33,16 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
   const path = request.nextUrl.pathname;
-  const onLogin = path === "/login" || path.startsWith("/login/");
+  const onLogin =
+    path === "/login" || path.startsWith("/login/") || path === "/signup";
 
-  // Signed-out people only ever see the sign-in screen; signed-in people
-  // skip it. Redirects carry the refreshed session cookies with them.
+  // Email links sign people in, so they must work whether or not someone is
+  // signed in already.
+  if (path.startsWith("/auth/")) return response;
+
+  // Signed-out people only ever see the sign-in and sign-up screens;
+  // signed-in people skip them. Redirects carry the refreshed session
+  // cookies with them.
   if (signedIn === onLogin) {
     const url = request.nextUrl.clone();
     url.pathname = signedIn ? "/" : "/login";
