@@ -32,7 +32,8 @@ export async function updateSession(request: NextRequest) {
   // refreshes an expired session.
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
-  const onLogin = request.nextUrl.pathname === "/login";
+  const path = request.nextUrl.pathname;
+  const onLogin = path === "/login" || path.startsWith("/login/");
 
   // Signed-out people only ever see the sign-in screen; signed-in people
   // skip it. Redirects carry the refreshed session cookies with them.

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions";
+import { needsAppCode } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -8,6 +9,7 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (await needsAppCode(supabase, user.id)) redirect("/verify");
 
   // Row level security returns nothing when the person is inactive or their
   // company is suspended, so a missing row means "no access".
