@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
-import type { OutboxItem, WorkerSnapshot } from "./types";
+import { officeHas } from "./outbox";
+import { workedMinutes } from "./time-card-rules";
+import type { OutboxItem, TimeCardPayload, WorkerSnapshot } from "./types";
 
 type Job = WorkerSnapshot["jobs"][number];
 
@@ -76,4 +78,54 @@ export function flhaStatus(
   const failed = mine.find((i) => i.status === "failed");
   if (failed) return { state: "failed", error: failed.error ?? "", itemId: failed.id };
   return null;
+}
+
+export type TimeCardView = {
+  id: string;
+  // Waiting on the phone, sent to the office, approved there, or stuck.
+  state: "waiting" | "sent" | "approved" | "failed";
+  error?: string;
+  filledAt: string;
+  workedMinutes: number;
+} & Pick<TimeCardPayload, "start" | "end" | "breakMinutes" | "lines" | "equipment">;
+
+// This worker's time card for a job and day: the phone's newer copy while
+// it's on its way, otherwise the office's.
+export function timeCardFor(
+  snapshot: WorkerSnapshot,
+  outbox: OutboxItem[],
+  jobId: string,
+  day: string,
+): TimeCardView | null {
+  const item = outbox
+    .filter((i) => i.kind === "time-card" && i.payload.jobId === jobId && i.payload.workDate === day)
+    .at(-1);
+  if (item?.kind === "time-card" && !(item.status === "sent" && officeHas(snapshot, item))) {
+    const p = item.payload;
+    return {
+      id: item.id,
+      state: item.status,
+      error: item.error,
+      filledAt: p.filledAt,
+      workedMinutes: workedMinutes(p.start, p.end, p.breakMinutes) ?? 0,
+      start: p.start,
+      end: p.end,
+      breakMinutes: p.breakMinutes,
+      lines: p.lines,
+      equipment: p.equipment,
+    };
+  }
+  const card = snapshot.timeCards.find((c) => c.job_id === jobId && c.work_date === day);
+  if (!card) return null;
+  return {
+    id: card.id,
+    state: card.status === "approved" ? "approved" : "sent",
+    filledAt: card.filled_at,
+    workedMinutes: card.worked_minutes,
+    start: card.start_time.slice(0, 5),
+    end: card.end_time.slice(0, 5),
+    breakMinutes: card.break_minutes,
+    lines: card.lines.map(({ cost_code_id, minutes, description }) => ({ cost_code_id, minutes, description })),
+    equipment: card.equipment.map(({ equipment_id, minutes }) => ({ equipment_id, minutes })),
+  };
 }

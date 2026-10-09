@@ -32,11 +32,20 @@ export async function removeFromOutbox(id: string) {
   changed();
 }
 
+// Whether the office's data already shows this form (this version of it,
+// for a form that can be changed).
+export function officeHas(snapshot: WorkerSnapshot, item: OutboxItem): boolean {
+  if (item.kind === "flha") return snapshot.flhas.some((f) => f.id === item.id);
+  return snapshot.timeCards.some(
+    (c) => c.id === item.id && Date.parse(c.filled_at) >= Date.parse(item.payload.filledAt),
+  );
+}
+
 // Clears sent forms the office's data now shows, or that are a few days old.
-export async function pruneSent(userId: string, knownIds: Set<string>) {
+export async function pruneSent(userId: string, snapshot: WorkerSnapshot) {
   const cutoff = new Date(Date.now() - 3 * 86_400_000).toISOString();
   for (const item of await outboxFor(userId)) {
-    if (item.status === "sent" && (knownIds.has(item.id) || item.createdAt < cutoff)) {
+    if (item.status === "sent" && (officeHas(snapshot, item) || item.createdAt < cutoff)) {
       await outboxStore.delete(item.id);
     }
   }

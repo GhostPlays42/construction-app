@@ -395,13 +395,128 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"time_card_changes": {
+                  Row: {
+                    "changed_at": string,"changed_by": string,"company_id": string,"field": string,"id": number,"new_value": string | null,"old_value": string | null,"time_card_id": string
+                  }
+                  Insert: {
+                    "changed_at"?: string,"changed_by": string,"company_id": string,"field": string,"id"?: never,"new_value"?: string | null,"old_value"?: string | null,"time_card_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"changed_by"?: string,"company_id"?: string,"field"?: string,"id"?: never,"new_value"?: string | null,"old_value"?: string | null,"time_card_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_card_changes_company_id_changed_by_fkey"
+      columns: ["company_id","changed_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "time_card_changes_company_id_time_card_id_fkey"
+      columns: ["company_id","time_card_id"]
+isOneToOne: false
+      referencedRelation: "time_cards"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"time_card_equipment": {
+                  Row: {
+                    "company_id": string,"equipment_id": string,"minutes": number,"name": string,"position": number,"time_card_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"equipment_id": string,"minutes": number,"name": string,"position": number,"time_card_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"equipment_id"?: string,"minutes"?: number,"name"?: string,"position"?: number,"time_card_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_card_equipment_company_id_equipment_id_fkey"
+      columns: ["company_id","equipment_id"]
+isOneToOne: false
+      referencedRelation: "equipment"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "time_card_equipment_company_id_time_card_id_fkey"
+      columns: ["company_id","time_card_id"]
+isOneToOne: false
+      referencedRelation: "time_cards"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"time_card_lines": {
+                  Row: {
+                    "code": string,"company_id": string,"cost_code_id": string,"description": string,"minutes": number,"name": string,"position": number,"time_card_id": string
+                  }
+                  Insert: {
+                    "code": string,"company_id": string,"cost_code_id": string,"description": string,"minutes": number,"name": string,"position": number,"time_card_id": string
+                  }
+                  Update: {
+                    "code"?: string,"company_id"?: string,"cost_code_id"?: string,"description"?: string,"minutes"?: number,"name"?: string,"position"?: number,"time_card_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_card_lines_company_id_cost_code_id_fkey"
+      columns: ["company_id","cost_code_id"]
+isOneToOne: false
+      referencedRelation: "cost_codes"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "time_card_lines_company_id_time_card_id_fkey"
+      columns: ["company_id","time_card_id"]
+isOneToOne: false
+      referencedRelation: "time_cards"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"time_cards": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"break_minutes": number,"company_id": string,"employee_id": string,"end_time": string,"filled_at": string,"id": string,"job_id": string,"start_time": string,"status": string,"submitted_at": string,"updated_at": string,"work_date": string,"worked_minutes": number
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"break_minutes"?: number,"company_id": string,"employee_id": string,"end_time": string,"filled_at": string,"id": string,"job_id": string,"start_time": string,"status"?: string,"submitted_at"?: string,"updated_at"?: string,"work_date": string,"worked_minutes": number
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"break_minutes"?: number,"company_id"?: string,"employee_id"?: string,"end_time"?: string,"filled_at"?: string,"id"?: string,"job_id"?: string,"start_time"?: string,"status"?: string,"submitted_at"?: string,"updated_at"?: string,"work_date"?: string,"worked_minutes"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "time_cards_company_id_approved_by_fkey"
+      columns: ["company_id","approved_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "time_cards_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "time_cards_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_cards_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "hook_before_user_created":
+            "approve_time_card":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
                            },
 "set_job_crew":
@@ -412,6 +527,12 @@ isOneToOne: false
                            },
 "submit_flha":
 { Args: { "p_cost_code_ids": (string)[],"p_filled_at"?: string,"p_hazards": Json,"p_id": string,"p_job_id": string,"p_other_control": string,"p_other_hazard": string,"p_ppe_ids": (string)[],"p_signature": string }; Returns: string
+                           },
+"submit_time_card":
+{ Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_lines": Json,"p_start": string,"p_work_date": string }; Returns: string
+                           },
+"update_time_card":
+{ Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_id": string,"p_lines": Json,"p_start": string }; Returns: undefined
                            }
           }
           Enums: {

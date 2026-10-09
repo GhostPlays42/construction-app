@@ -16,7 +16,7 @@ function useServiceWorker() {
       .register("/sw.js")
       .then(() => navigator.serviceWorker.ready)
       .then((reg) => {
-        if (navigator.onLine) reg.active?.postMessage({ type: "warm", paths: ["/", "/flha"] });
+        if (navigator.onLine) reg.active?.postMessage({ type: "warm", paths: ["/", "/flha", "/time-card"] });
       })
       .catch(() => {});
   }, []);
@@ -57,7 +57,7 @@ export function useWorkerData(initial: WorkerSnapshot) {
       setOffline(false);
       setSignedOut(false);
       await snapshots.set(fresh).catch(() => {});
-      await pruneSent(userId, new Set(fresh.flhas.map((f) => f.id))).catch(() => {});
+      await pruneSent(userId, fresh).catch(() => {});
     } catch {
       setOffline(true);
     }
