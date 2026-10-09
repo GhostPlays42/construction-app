@@ -17,7 +17,7 @@ export default async function Home() {
   const [{ data: me }, { data: owner }] = await Promise.all([
     supabase
       .from("employees")
-      .select("full_name, role_key, companies(name)")
+      .select("full_name, role_key, companies(name), roles(is_admin)")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase.from("platform_owners").select("user_id").eq("user_id", user.id).maybeSingle(),
@@ -57,6 +57,14 @@ export default async function Home() {
       <p className="text-lg text-zinc-600 dark:text-zinc-400">
         You&apos;re signed in. Your jobs and forms will show up here.
       </p>
+      {me.roles?.is_admin && (
+        <Link
+          href="/admin/people"
+          className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+        >
+          People
+        </Link>
+      )}
       {owner && (
         <Link
           href="/owner"
