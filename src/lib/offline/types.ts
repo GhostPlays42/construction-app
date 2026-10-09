@@ -11,6 +11,10 @@ export type WorkerSnapshot = {
   flhas: { id: string; job_id: string; work_date: string; filled_at: string }[];
   // This worker's recent time cards, so they can see and change them.
   timeCards: TimeCardCopy[];
+  // Recent safety meetings on the worker's jobs, run by anyone on the crew.
+  safetyMeetings: { id: string; job_id: string; work_date: string; filled_at: string; led_by_name: string }[];
+  // Who is on each of the worker's active jobs, for the safety meeting sign-off.
+  crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {
     codes: { id: string; code: string; name: string }[];
     hazards: { id: string; name: string }[];
@@ -64,10 +68,23 @@ export type TimeCardPayload = {
   equipment: { equipment_id: string; minutes: number }[];
 };
 
+export type SafetyMeetingPayload = {
+  jobId: string;
+  jobName: string;
+  workDate: string;
+  filledAt: string;
+  hazards: string[];
+  otherHazard: string;
+  topic: string;
+  // Each person present: their finger signature, or null when their name was tapped.
+  attendees: { employee_id: string; signature: string | null }[];
+};
+
 // A form saved on the phone that hasn't reached the office yet.
 export type OutboxItem = (
   | { kind: "flha"; payload: FlhaPayload }
   | { kind: "time-card"; payload: TimeCardPayload }
+  | { kind: "safety-meeting"; payload: SafetyMeetingPayload }
 ) & {
   id: string;
   userId: string;

@@ -129,3 +129,32 @@ export function timeCardFor(
     equipment: card.equipment.map(({ equipment_id, minutes }) => ({ equipment_id, minutes })),
   };
 }
+
+export type SafetyStatus =
+  | { state: "sent"; filledAt: string; ledBy: string }
+  | { state: "waiting"; filledAt: string; ledBy: string }
+  | { state: "failed"; error: string; itemId: string }
+  | null;
+
+// Whether today's safety meeting for a job has happened: sent by anyone on
+// the crew, or saved on this phone and waiting to send, or stuck.
+export function safetyStatus(
+  snapshot: WorkerSnapshot,
+  outbox: OutboxItem[],
+  jobId: string,
+  today: string,
+): SafetyStatus {
+  const sent = snapshot.safetyMeetings.find((m) => m.job_id === jobId && m.work_date === today);
+  if (sent) return { state: "sent", filledAt: sent.filled_at, ledBy: sent.led_by_name };
+  const me = snapshot.crews.find((c) => c.employee_id === snapshot.employeeId)?.full_name ?? snapshot.firstName;
+  const mine = outbox.filter(
+    (i) => i.kind === "safety-meeting" && i.payload.jobId === jobId && i.payload.workDate === today,
+  );
+  const delivered = mine.find((i) => i.status === "sent");
+  if (delivered) return { state: "sent", filledAt: delivered.payload.filledAt, ledBy: me };
+  const waiting = mine.find((i) => i.status === "waiting");
+  if (waiting) return { state: "waiting", filledAt: waiting.payload.filledAt, ledBy: me };
+  const failed = mine.find((i) => i.status === "failed");
+  if (failed) return { state: "failed", error: failed.error ?? "", itemId: failed.id };
+  return null;
+}

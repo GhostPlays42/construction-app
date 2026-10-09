@@ -4,11 +4,23 @@ import { formatDate, formatDateTime, formatTime, todayISO } from "@/lib/dates";
 import { mapLink } from "@/lib/maps";
 import { flhaMessage } from "@/lib/offline/flha-rules";
 import { removeFromOutbox } from "@/lib/offline/outbox";
+import { safetyMessage } from "@/lib/offline/safety-rules";
 import { hoursText, timeCardMessage } from "@/lib/offline/time-card-rules";
-import { flhaStatus, savePick, timeCardFor, todaysJob, usePick } from "@/lib/offline/today";
-import type { WorkerSnapshot } from "@/lib/offline/types";
+import { flhaStatus, safetyStatus, savePick, timeCardFor, todaysJob, usePick } from "@/lib/offline/today";
+import type { OutboxItem, WorkerSnapshot } from "@/lib/offline/types";
 import { useWorkerData } from "@/lib/offline/use-worker-data";
 import { SignOutButton } from "./sign-out-button";
+
+const FORM_NAMES: Record<OutboxItem["kind"], string> = {
+  flha: "FLHA",
+  "time-card": "time card",
+  "safety-meeting": "safety meeting",
+};
+const MESSAGES: Record<OutboxItem["kind"], (code: string) => string> = {
+  flha: flhaMessage,
+  "time-card": timeCardMessage,
+  "safety-meeting": safetyMessage,
+};
 
 // Forms still being built. They'll unlock once the FLHA is done, like the time card.
 const COMING = ["Trucking slip", "Site photos"];
@@ -26,6 +38,7 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
   const flha = job ? flhaStatus(snapshot, outbox, job.id, today) : null;
   const flhaDone = flha?.state === "sent" || flha?.state === "waiting";
   const timeCard = job ? timeCardFor(snapshot, outbox, job.id, today) : null;
+  const meeting = job ? safetyStatus(snapshot, outbox, job.id, today) : null;
   const waiting = outbox.filter((i) => i.status === "waiting");
   const failed = outbox.filter((i) => i.status === "failed");
 
@@ -76,11 +89,11 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
           {failed.map((item) => (
             <div key={item.id} role="alert" className="flex flex-col gap-2 rounded-xl bg-red-50 p-4 text-red-900 dark:bg-red-950 dark:text-red-100">
               <p className="text-lg font-semibold">
-                Couldn&apos;t send your {item.kind === "flha" ? "FLHA" : "time card"} for {item.payload.jobName} (
+                Couldn&apos;t send your {FORM_NAMES[item.kind]} for {item.payload.jobName} (
                 {formatDate(item.payload.workDate)})
               </p>
               <p className="text-base">
-                {item.kind === "flha" ? flhaMessage(item.error ?? "") : timeCardMessage(item.error ?? "")}
+                {MESSAGES[item.kind](item.error ?? "")}
               </p>
               <button
                 type="button"
@@ -178,6 +191,30 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
             <h2 className="text-xl font-semibold">Job forms</h2>
             {!flhaDone && (
               <p className="-mt-2 text-base text-zinc-600 dark:text-zinc-400">These unlock once your FLHA is done.</p>
+            )}
+            {!flhaDone ? (
+              <Locked name="Safety meeting" />
+            ) : meeting?.state === "sent" || meeting?.state === "waiting" ? (
+              <div
+                role="status"
+                className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-4 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
+              >
+                <span>
+                  Safety meeting done
+                  <span className="block text-base font-normal">
+                    {meeting.state === "waiting" ? "Waiting to send" : `Run by ${meeting.ledBy}`}
+                  </span>
+                </span>
+                <span className="text-lg font-normal">✓ {formatTime(meeting.filledAt)}</span>
+              </div>
+            ) : (
+              <a
+                href="/safety-meeting"
+                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
+              >
+                <span>Safety meeting</span>
+                <span aria-hidden>→</span>
+              </a>
             )}
             {!flhaDone ? (
               <Locked name="Time card" />
