@@ -42,7 +42,12 @@ export function VerifyForm() {
           await mfa.unenroll({ factorId: f.id });
         }
       }
-      const enrolled = await mfa.enroll({ factorType: "totp", friendlyName: "Authenticator app" });
+      const enrolled = await mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Authenticator app",
+        // The name shown next to the code in the authenticator app.
+        issuer: "Construction App",
+      });
       if (enrolled.error) return setError(friendlyError(enrolled.error));
       setFactorId(enrolled.data.id);
       setSetup({
