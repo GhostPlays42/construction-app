@@ -4,13 +4,14 @@ import { formatDate, formatDateTime, formatTime, todayISO } from "@/lib/dates";
 import { mapLink } from "@/lib/maps";
 import { flhaMessage } from "@/lib/offline/flha-rules";
 import { removeFromOutbox } from "@/lib/offline/outbox";
-import { flhaStatus, savePick, todaysJob, usePick } from "@/lib/offline/today";
+import { hoursText, timeCardMessage } from "@/lib/offline/time-card-rules";
+import { flhaStatus, savePick, timeCardFor, todaysJob, usePick } from "@/lib/offline/today";
 import type { WorkerSnapshot } from "@/lib/offline/types";
 import { useWorkerData } from "@/lib/offline/use-worker-data";
 import { SignOutButton } from "./sign-out-button";
 
-// The forms a worker fills in on a job. They unlock once the FLHA is done.
-const FORMS = ["Time card", "Trucking slip", "Site photos"];
+// Forms still being built. They'll unlock once the FLHA is done, like the time card.
+const COMING = ["Trucking slip", "Site photos"];
 
 const card = "flex flex-col gap-1 rounded-xl border-2 border-zinc-200 p-4 dark:border-zinc-800";
 
@@ -23,6 +24,8 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
 
   const { jobs, job } = todaysJob(snapshot, today, pick);
   const flha = job ? flhaStatus(snapshot, outbox, job.id, today) : null;
+  const flhaDone = flha?.state === "sent" || flha?.state === "waiting";
+  const timeCard = job ? timeCardFor(snapshot, outbox, job.id, today) : null;
   const waiting = outbox.filter((i) => i.status === "waiting");
   const failed = outbox.filter((i) => i.status === "failed");
 
@@ -73,9 +76,12 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
           {failed.map((item) => (
             <div key={item.id} role="alert" className="flex flex-col gap-2 rounded-xl bg-red-50 p-4 text-red-900 dark:bg-red-950 dark:text-red-100">
               <p className="text-lg font-semibold">
-                Couldn&apos;t send your FLHA for {item.payload.jobName} ({formatDate(item.payload.workDate)})
+                Couldn&apos;t send your {item.kind === "flha" ? "FLHA" : "time card"} for {item.payload.jobName} (
+                {formatDate(item.payload.workDate)})
               </p>
-              <p className="text-base">{flhaMessage(item.error ?? "")}</p>
+              <p className="text-base">
+                {item.kind === "flha" ? flhaMessage(item.error ?? "") : timeCardMessage(item.error ?? "")}
+              </p>
               <button
                 type="button"
                 onClick={() => removeFromOutbox(item.id)}
@@ -144,7 +150,7 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
             )}
           </section>
 
-          {flha?.state === "sent" || flha?.state === "waiting" ? (
+          {flhaDone ? (
             <div
               role="status"
               className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-5 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
@@ -170,23 +176,48 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-xl font-semibold">Job forms</h2>
-            <p className="-mt-2 text-base text-zinc-600 dark:text-zinc-400">
-              {flha?.state === "sent" || flha?.state === "waiting"
-                ? "Coming soon. These are being built next."
-                : "These unlock once your FLHA is done."}
-            </p>
-            {FORMS.map((name) => (
-              <button
-                key={name}
-                type="button"
-                disabled
-                className="flex w-full items-center justify-between rounded-xl border-2 border-zinc-200 px-4 py-4 text-xl text-zinc-500 dark:border-zinc-800"
+            {!flhaDone && (
+              <p className="-mt-2 text-base text-zinc-600 dark:text-zinc-400">These unlock once your FLHA is done.</p>
+            )}
+            {!flhaDone ? (
+              <Locked name="Time card" />
+            ) : timeCard ? (
+              <a
+                href="/time-card"
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
+                  timeCard.state === "failed"
+                    ? "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100"
+                    : "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
+                }`}
               >
-                <span>{name}</span>
-                <span aria-hidden className="text-base">
-                  🔒
+                <span>
+                  Time card {timeCard.state === "approved" ? "approved" : timeCard.state === "failed" ? "not sent" : "done"}
+                  <span className="block text-base font-normal">
+                    {timeCard.state === "waiting"
+                      ? "Waiting to send"
+                      : timeCard.state === "failed"
+                        ? "Tap to fix and send again"
+                        : timeCard.state === "approved"
+                          ? "Tap to see it"
+                          : "Tap to see or change it"}
+                  </span>
                 </span>
-              </button>
+                <span className="text-lg font-normal">
+                  {timeCard.state === "failed" ? "" : "✓ "}
+                  {hoursText(timeCard.workedMinutes)}
+                </span>
+              </a>
+            ) : (
+              <a
+                href="/time-card"
+                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
+              >
+                <span>Time card</span>
+                <span aria-hidden>→</span>
+              </a>
+            )}
+            {COMING.map((name) => (
+              <Locked key={name} name={name} note={flhaDone ? "Coming soon" : undefined} />
             ))}
           </section>
         </>
@@ -194,5 +225,18 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
 
       <SignOutButton userId={initial.userId} waiting={waiting.length} />
     </main>
+  );
+}
+
+function Locked({ name, note }: { name: string; note?: string }) {
+  return (
+    <button
+      type="button"
+      disabled
+      className="flex w-full items-center justify-between rounded-xl border-2 border-zinc-200 px-4 py-4 text-xl text-zinc-500 dark:border-zinc-800"
+    >
+      <span>{name}</span>
+      <span className="text-base">{note ?? <span aria-hidden>🔒</span>}</span>
+    </button>
   );
 }

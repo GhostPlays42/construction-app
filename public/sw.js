@@ -2,14 +2,14 @@
 //
 // - App files (/_next/static) never change once built, so they come from the
 //   phone's copy when it has one.
-// - The worker's screens (home and the FLHA) come from the server when there's
-//   signal, and the phone's last copy when there isn't. Only pages marked
-//   data-offline-page are kept, so office screens never are.
+// - The worker's screens (home, the FLHA and the time card) come from the
+//   server when there's signal, and the phone's last copy when there isn't.
+//   Only pages marked data-offline-page are kept, so office screens never are.
 // - Signing out clears the kept screens.
 
 const PAGES = "pages-v1";
 const STATIC = "static-v1";
-const OFFLINE_PATHS = ["/", "/flha"];
+const OFFLINE_PATHS = ["/", "/flha", "/time-card"];
 const MARKER = "data-offline-page";
 // On a weak signal, wait this long for the server before using the phone's copy.
 const NETWORK_WAIT_MS = 6000;

@@ -4,7 +4,8 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { WorkerSnapshot } from "./types";
 
 // Everything a worker's screens need, in one go. Row level security limits
-// jobs to the ones they're assigned to and FLHAs to their own. Returns null
+// jobs (and their machines) to the ones they're assigned to, and FLHAs and
+// time cards to their own. Returns null
 // when the person has no access.
 export async function buildSnapshot(
   supabase: SupabaseClient<Database>,
@@ -17,7 +18,8 @@ export async function buildSnapshot(
     .maybeSingle();
   if (!me) return null;
 
-  const [jobs, flhas, codes, hazards, ppe] = await Promise.all([
+  const since = addDays(todayISO(), -1);
+  const [jobs, flhas, cards, codes, hazards, ppe, machines] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -27,13 +29,32 @@ export async function buildSnapshot(
       .from("flhas")
       .select("id, job_id, work_date, filled_at")
       .eq("employee_id", me.id)
-      .gte("work_date", addDays(todayISO(), -1)),
+      .gte("work_date", since),
+    supabase
+      .from("time_cards")
+      .select(
+        "id, job_id, work_date, start_time, end_time, break_minutes, worked_minutes, status, filled_at, time_card_lines(cost_code_id, code, name, minutes, description, position), time_card_equipment(equipment_id, name, minutes, position)",
+      )
+      .eq("employee_id", me.id)
+      .gte("work_date", since),
     supabase.from("cost_codes").select("id, code, name").eq("is_active", true).order("sort_order").order("code"),
     supabase.from("hazards").select("id, name").eq("is_active", true).order("sort_order").order("name"),
     supabase.from("ppe_items").select("id, name").eq("is_active", true).order("sort_order").order("name"),
+    supabase.from("job_equipment").select("job_id, equipment(id, name, unit_number, is_active)"),
   ]);
-  const failed = jobs.error ?? flhas.error ?? codes.error ?? hazards.error ?? ppe.error;
+  const failed =
+    jobs.error ?? flhas.error ?? cards.error ?? codes.error ?? hazards.error ?? ppe.error ?? machines.error;
   if (failed) throw new Error(failed.message);
+
+  const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
+  for (const row of machines.data ?? []) {
+    const m = row.equipment;
+    if (!m?.is_active) continue;
+    const entry = equipment.get(m.id) ?? { id: m.id, name: machineName(m), job_ids: [] };
+    entry.job_ids.push(row.job_id);
+    equipment.set(m.id, entry);
+  }
+  const byPosition = (a: { position: number }, b: { position: number }) => a.position - b.position;
 
   return {
     userId,
@@ -43,6 +64,26 @@ export async function buildSnapshot(
     fetchedAt: new Date().toISOString(),
     jobs: jobs.data ?? [],
     flhas: flhas.data ?? [],
-    lists: { codes: codes.data ?? [], hazards: hazards.data ?? [], ppe: ppe.data ?? [] },
+    timeCards: (cards.data ?? []).map(({ time_card_lines, time_card_equipment, status, ...card }) => ({
+      ...card,
+      status: status === "approved" ? "approved" : "submitted",
+      lines: [...time_card_lines]
+        .sort(byPosition)
+        .map(({ cost_code_id, code, name, minutes, description }) => ({ cost_code_id, code, name, minutes, description })),
+      equipment: [...time_card_equipment]
+        .sort(byPosition)
+        .map(({ equipment_id, name, minutes }) => ({ equipment_id, name, minutes })),
+    })),
+    lists: {
+      codes: codes.data ?? [],
+      hazards: hazards.data ?? [],
+      ppe: ppe.data ?? [],
+      equipment: [...equipment.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    },
   };
+}
+
+// "Excavator #EX-12", the way time cards show a machine.
+export function machineName(m: { name: string; unit_number: string | null }) {
+  return m.unit_number ? `${m.name} #${m.unit_number}` : m.name;
 }
