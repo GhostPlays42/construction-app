@@ -156,6 +156,112 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"flha_hazards": {
+                  Row: {
+                    "company_id": string,"control": string,"flha_id": string,"hazard_id": string,"name": string,"position": number
+                  }
+                  Insert: {
+                    "company_id": string,"control": string,"flha_id": string,"hazard_id": string,"name": string,"position": number
+                  }
+                  Update: {
+                    "company_id"?: string,"control"?: string,"flha_id"?: string,"hazard_id"?: string,"name"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "flha_hazards_company_id_flha_id_fkey"
+      columns: ["company_id","flha_id"]
+isOneToOne: false
+      referencedRelation: "flhas"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "flha_hazards_company_id_hazard_id_fkey"
+      columns: ["company_id","hazard_id"]
+isOneToOne: false
+      referencedRelation: "hazards"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"flha_ppe": {
+                  Row: {
+                    "company_id": string,"flha_id": string,"name": string,"position": number,"ppe_item_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"flha_id": string,"name": string,"position": number,"ppe_item_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"flha_id"?: string,"name"?: string,"position"?: number,"ppe_item_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "flha_ppe_company_id_flha_id_fkey"
+      columns: ["company_id","flha_id"]
+isOneToOne: false
+      referencedRelation: "flhas"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "flha_ppe_company_id_ppe_item_id_fkey"
+      columns: ["company_id","ppe_item_id"]
+isOneToOne: false
+      referencedRelation: "ppe_items"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"flha_tasks": {
+                  Row: {
+                    "code": string,"company_id": string,"cost_code_id": string,"flha_id": string,"name": string,"position": number
+                  }
+                  Insert: {
+                    "code": string,"company_id": string,"cost_code_id": string,"flha_id": string,"name": string,"position": number
+                  }
+                  Update: {
+                    "code"?: string,"company_id"?: string,"cost_code_id"?: string,"flha_id"?: string,"name"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "flha_tasks_company_id_cost_code_id_fkey"
+      columns: ["company_id","cost_code_id"]
+isOneToOne: false
+      referencedRelation: "cost_codes"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "flha_tasks_company_id_flha_id_fkey"
+      columns: ["company_id","flha_id"]
+isOneToOne: false
+      referencedRelation: "flhas"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"flhas": {
+                  Row: {
+                    "company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"other_control": string | null,"other_hazard": string | null,"signature": string,"submitted_at": string,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"other_control"?: string | null,"other_hazard"?: string | null,"signature": string,"submitted_at"?: string,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"employee_id"?: string,"filled_at"?: string,"id"?: string,"job_id"?: string,"other_control"?: string | null,"other_hazard"?: string | null,"signature"?: string,"submitted_at"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "flhas_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "flhas_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "flhas_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"hazards": {
                   Row: {
                     "company_id": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"sort_order": number,"updated_at": string
@@ -303,6 +409,9 @@ isOneToOne: false
                            },
 "set_job_equipment":
 { Args: { "p_equipment_ids": (string)[],"p_job_id": string }; Returns: undefined
+                           },
+"submit_flha":
+{ Args: { "p_cost_code_ids": (string)[],"p_filled_at"?: string,"p_hazards": Json,"p_id": string,"p_job_id": string,"p_other_control": string,"p_other_hazard": string,"p_ppe_ids": (string)[],"p_signature": string }; Returns: string
                            }
           }
           Enums: {

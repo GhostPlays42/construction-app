@@ -18,7 +18,7 @@ export default async function Home() {
   const [{ data: me }, { data: owner }] = await Promise.all([
     supabase
       .from("employees")
-      .select("full_name, role_key, companies(name), roles(is_admin)")
+      .select("id, full_name, role_key, companies(name), roles(is_admin)")
       .eq("user_id", user.id)
       .maybeSingle(),
     supabase.from("platform_owners").select("user_id").eq("user_id", user.id).maybeSingle(),
@@ -55,6 +55,7 @@ export default async function Home() {
     return (
       <WorkerHome
         supabase={supabase}
+        employeeId={me.id}
         firstName={firstName}
         companyName={me.companies?.name}
         signOutButton={signOutButton}
@@ -85,6 +86,12 @@ export default async function Home() {
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >
         Equipment
+      </Link>
+      <Link
+        href="/admin/flha"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        FLHAs
       </Link>
       <Link
         href="/admin/lists"

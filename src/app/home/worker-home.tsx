@@ -1,10 +1,10 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { formatDate, todayISO } from "@/lib/dates";
+import { formatDate, formatTime, todayISO } from "@/lib/dates";
 import { mapLink } from "@/lib/maps";
+import { loadTodaysJob } from "@/lib/todays-job";
 import { pickJob, switchJob } from "./actions";
-import { JOB_PICK_COOKIE, pickedJobId } from "./job-pick";
 
 // The forms a worker fills in on a job. They unlock once the FLHA is done.
 const FORMS = ["Time card", "Trucking slip", "Site photos"];
@@ -13,31 +13,30 @@ const card = "flex flex-col gap-1 rounded-xl border-2 border-zinc-200 p-4 dark:b
 
 export async function WorkerHome({
   supabase,
+  employeeId,
   firstName,
   companyName,
   signOutButton,
 }: {
   supabase: SupabaseClient<Database>;
+  employeeId: string;
   firstName: string;
   companyName: string | undefined;
   signOutButton: React.ReactNode;
 }) {
   const today = todayISO();
-  // Row level security only returns jobs this worker is assigned to. Until
-  // dispatch exists, those active jobs (already started) are "today's jobs".
-  const [{ data: jobs, error }, store] = await Promise.all([
-    supabase
-      .from("jobs")
-      .select("id, name, job_number, address")
-      .eq("status", "active")
-      .or(`start_date.is.null,start_date.lte.${today}`)
-      .order("name"),
-    cookies(),
-  ]);
+  const { jobs: list, job, failed: error } = await loadTodaysJob(supabase);
 
-  const list = jobs ?? [];
-  const picked = pickedJobId(store.get(JOB_PICK_COOKIE)?.value);
-  const job = list.length === 1 ? list[0] : list.find((j) => j.id === picked);
+  // This worker's FLHA for today's job, if they've done it.
+  const { data: flha } = job
+    ? await supabase
+        .from("flhas")
+        .select("filled_at")
+        .eq("job_id", job.id)
+        .eq("employee_id", employeeId)
+        .eq("work_date", today)
+        .maybeSingle()
+    : { data: null };
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
@@ -107,23 +106,27 @@ export async function WorkerHome({
             )}
           </section>
 
-          <div className="flex flex-col gap-1">
-            <button
-              type="button"
-              disabled
-              className="w-full rounded-xl bg-amber-500 px-4 py-5 text-2xl font-bold text-black disabled:opacity-60"
+          {flha ? (
+            <div
+              role="status"
+              className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-5 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
+            >
+              <span>FLHA done</span>
+              <span className="text-lg font-normal">✓ {formatTime(flha.filled_at)}</span>
+            </div>
+          ) : (
+            <Link
+              href="/flha"
+              className="w-full rounded-xl bg-amber-500 px-4 py-5 text-center text-2xl font-bold text-black active:bg-amber-600"
             >
               Start FLHA
-            </button>
-            <p className="text-center text-base text-zinc-600 dark:text-zinc-400">
-              Coming soon. This is the next piece being built.
-            </p>
-          </div>
+            </Link>
+          )}
 
           <section className="flex flex-col gap-3">
             <h2 className="text-xl font-semibold">Job forms</h2>
             <p className="-mt-2 text-base text-zinc-600 dark:text-zinc-400">
-              These unlock once your FLHA is done.
+              {flha ? "Coming soon. These are being built next." : "These unlock once your FLHA is done."}
             </p>
             {FORMS.map((name) => (
               <button
