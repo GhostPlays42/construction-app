@@ -99,6 +99,50 @@ isOneToOne: false
       referencedColumns: ["key"]
     }
                   ]
+                },"job_assignments": {
+                  Row: {
+                    "company_id": string,"created_at": string,"employee_id": string,"job_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"employee_id": string,"job_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"employee_id"?: string,"job_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "job_assignments_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "job_assignments_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"jobs": {
+                  Row: {
+                    "address": string | null,"client": string | null,"company_id": string,"created_at": string,"end_date": string | null,"id": string,"job_number": string | null,"name": string,"start_date": string | null,"status": string,"updated_at": string
+                  }
+                  Insert: {
+                    "address"?: string | null,"client"?: string | null,"company_id": string,"created_at"?: string,"end_date"?: string | null,"id"?: string,"job_number"?: string | null,"name": string,"start_date"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "address"?: string | null,"client"?: string | null,"company_id"?: string,"created_at"?: string,"end_date"?: string | null,"id"?: string,"job_number"?: string | null,"name"?: string,"start_date"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jobs_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"platform_owners": {
                   Row: {
                     "created_at": string,"user_id": string
@@ -133,6 +177,9 @@ isOneToOne: false
           Functions: {
             "hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
+                           },
+"set_job_crew":
+{ Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined
                            }
           }
           Enums: {
