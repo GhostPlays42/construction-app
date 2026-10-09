@@ -395,6 +395,87 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"safety_meeting_attendees": {
+                  Row: {
+                    "company_id": string,"employee_id": string,"meeting_id": string,"name": string,"position": number,"signature": string | null
+                  }
+                  Insert: {
+                    "company_id": string,"employee_id": string,"meeting_id": string,"name": string,"position": number,"signature"?: string | null
+                  }
+                  Update: {
+                    "company_id"?: string,"employee_id"?: string,"meeting_id"?: string,"name"?: string,"position"?: number,"signature"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "safety_meeting_attendees_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "safety_meeting_attendees_company_id_meeting_id_fkey"
+      columns: ["company_id","meeting_id"]
+isOneToOne: false
+      referencedRelation: "safety_meetings"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"safety_meeting_hazards": {
+                  Row: {
+                    "company_id": string,"hazard_id": string,"meeting_id": string,"name": string,"position": number
+                  }
+                  Insert: {
+                    "company_id": string,"hazard_id": string,"meeting_id": string,"name": string,"position": number
+                  }
+                  Update: {
+                    "company_id"?: string,"hazard_id"?: string,"meeting_id"?: string,"name"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "safety_meeting_hazards_company_id_hazard_id_fkey"
+      columns: ["company_id","hazard_id"]
+isOneToOne: false
+      referencedRelation: "hazards"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "safety_meeting_hazards_company_id_meeting_id_fkey"
+      columns: ["company_id","meeting_id"]
+isOneToOne: false
+      referencedRelation: "safety_meetings"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"safety_meetings": {
+                  Row: {
+                    "company_id": string,"filled_at": string,"id": string,"job_id": string,"led_by": string,"other_hazard": string | null,"submitted_at": string,"topic": string,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"filled_at": string,"id": string,"job_id": string,"led_by": string,"other_hazard"?: string | null,"submitted_at"?: string,"topic": string,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"filled_at"?: string,"id"?: string,"job_id"?: string,"led_by"?: string,"other_hazard"?: string | null,"submitted_at"?: string,"topic"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "safety_meetings_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "safety_meetings_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "safety_meetings_company_id_led_by_fkey"
+      columns: ["company_id","led_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"time_card_changes": {
                   Row: {
                     "changed_at": string,"changed_by": string,"company_id": string,"field": string,"id": number,"new_value": string | null,"old_value": string | null,"time_card_id": string
@@ -519,6 +600,11 @@ isOneToOne: false
 "hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
                            },
+"my_job_crews":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "employee_id": string,"full_name": string,"job_id": string
+            }[]
+                           },
 "set_job_crew":
 { Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined
                            },
@@ -527,6 +613,9 @@ isOneToOne: false
                            },
 "submit_flha":
 { Args: { "p_cost_code_ids": (string)[],"p_filled_at"?: string,"p_hazards": Json,"p_id": string,"p_job_id": string,"p_other_control": string,"p_other_hazard": string,"p_ppe_ids": (string)[],"p_signature": string }; Returns: string
+                           },
+"submit_safety_meeting":
+{ Args: { "p_attendees": Json,"p_filled_at"?: string,"p_hazard_ids": (string)[],"p_id": string,"p_job_id": string,"p_other_hazard": string,"p_topic": string }; Returns: string
                            },
 "submit_time_card":
 { Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_lines": Json,"p_start": string,"p_work_date": string }; Returns: string

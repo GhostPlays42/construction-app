@@ -16,7 +16,7 @@ export default async function Home() {
 
   // Row level security returns nothing when the person is inactive or their
   // company is suspended, so a missing row means "no access".
-  const [{ data: me }, { data: owner }] = await Promise.all([
+  const [{ data: me, error: meError }, { data: owner }] = await Promise.all([
     supabase
       .from("employees")
       .select("id, full_name, role_key, companies(name), roles(is_admin)")
@@ -37,6 +37,19 @@ export default async function Home() {
       </button>
     </form>
   );
+
+  // A lookup that failed is not the same as no access; don't tell a worker
+  // their access is off because the server hiccuped.
+  if (meError) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-4 py-10">
+        <p role="alert" className="text-lg text-red-600 dark:text-red-400">
+          Couldn&apos;t load your account. Refresh to try again.
+        </p>
+        {signOutButton}
+      </main>
+    );
+  }
 
   if (!me) {
     return (
@@ -96,6 +109,12 @@ export default async function Home() {
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >
         FLHAs
+      </Link>
+      <Link
+        href="/admin/safety"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        Safety meetings
       </Link>
       <Link
         href="/admin/time-cards"

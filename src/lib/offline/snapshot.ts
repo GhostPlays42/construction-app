@@ -4,8 +4,8 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { WorkerSnapshot } from "./types";
 
 // Everything a worker's screens need, in one go. Row level security limits
-// jobs (and their machines) to the ones they're assigned to, and FLHAs and
-// time cards to their own. Returns null
+// jobs (and their machines, crews and safety meetings) to the ones they're
+// assigned to, and FLHAs and time cards to their own. Returns null
 // when the person has no access.
 export async function buildSnapshot(
   supabase: SupabaseClient<Database>,
@@ -19,7 +19,7 @@ export async function buildSnapshot(
   if (!me) return null;
 
   const since = addDays(todayISO(), -1);
-  const [jobs, flhas, cards, codes, hazards, ppe, machines] = await Promise.all([
+  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -41,9 +41,22 @@ export async function buildSnapshot(
     supabase.from("hazards").select("id, name").eq("is_active", true).order("sort_order").order("name"),
     supabase.from("ppe_items").select("id, name").eq("is_active", true).order("sort_order").order("name"),
     supabase.from("job_equipment").select("job_id, equipment(id, name, unit_number, is_active)"),
+    supabase
+      .from("safety_meetings")
+      .select("id, job_id, work_date, filled_at, employees(full_name)")
+      .gte("work_date", since),
+    supabase.rpc("my_job_crews"),
   ]);
   const failed =
-    jobs.error ?? flhas.error ?? cards.error ?? codes.error ?? hazards.error ?? ppe.error ?? machines.error;
+    jobs.error ??
+    flhas.error ??
+    cards.error ??
+    codes.error ??
+    hazards.error ??
+    ppe.error ??
+    machines.error ??
+    meetings.error ??
+    crews.error;
   if (failed) throw new Error(failed.message);
 
   const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
@@ -74,6 +87,11 @@ export async function buildSnapshot(
         .sort(byPosition)
         .map(({ equipment_id, name, minutes }) => ({ equipment_id, name, minutes })),
     })),
+    safetyMeetings: (meetings.data ?? []).map(({ employees, ...m }) => ({
+      ...m,
+      led_by_name: employees?.full_name ?? "",
+    })),
+    crews: crews.data ?? [],
     lists: {
       codes: codes.data ?? [],
       hazards: hazards.data ?? [],

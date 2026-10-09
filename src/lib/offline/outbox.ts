@@ -36,6 +36,7 @@ export async function removeFromOutbox(id: string) {
 // for a form that can be changed).
 export function officeHas(snapshot: WorkerSnapshot, item: OutboxItem): boolean {
   if (item.kind === "flha") return snapshot.flhas.some((f) => f.id === item.id);
+  if (item.kind === "safety-meeting") return snapshot.safetyMeetings.some((m) => m.id === item.id);
   return snapshot.timeCards.some(
     (c) => c.id === item.id && Date.parse(c.filled_at) >= Date.parse(item.payload.filledAt),
   );
