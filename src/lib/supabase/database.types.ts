@@ -55,6 +55,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"cost_codes": {
+                  Row: {
+                    "code": string,"company_id": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"sort_order": number,"updated_at": string
+                  }
+                  Insert: {
+                    "code": string,"company_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "code"?: string,"company_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cost_codes_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"employee_rates": {
                   Row: {
                     "company_id": string,"employee_id": string,"hourly_rate": number,"updated_at": string
@@ -135,6 +154,25 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "equipment"
       referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"hazards": {
+                  Row: {
+                    "company_id": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"sort_order": number,"updated_at": string
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hazards_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
     }
                   ]
                 },"job_assignments": {
@@ -218,6 +256,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"ppe_items": {
+                  Row: {
+                    "company_id": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"sort_order": number,"updated_at": string
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ppe_items_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"roles": {
                   Row: {
