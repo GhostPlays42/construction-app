@@ -16,7 +16,7 @@ function text(fd: FormData, name: string): string {
 function friendlyDbError(error: { code?: string; message?: string }): string {
   if (error.code === "23505") return "Another job already uses that job number.";
   if (error.code === "23514") return "The end date can't be before the start date.";
-  if (error.code === "23503") return "One of the crew can't be put on this job. Refresh and try again.";
+  if (error.code === "23503") return "Someone or something picked can't be put on this job. Refresh and try again.";
   return "Something went wrong. Check your connection and try again.";
 }
 
@@ -28,6 +28,7 @@ export async function saveJob(
 ): Promise<JobFormState> {
   const { supabase, companyId } = await requireAdmin();
   const crew = fd.getAll("crew").map(String);
+  const equipment = fd.getAll("equipment").map(String);
   const values = {
     name: text(fd, "name"),
     job_number: text(fd, "job_number"),
@@ -37,6 +38,7 @@ export async function saveJob(
     end_date: text(fd, "end_date"),
     status: text(fd, "status") || "active",
     crew: crew.join(","),
+    equipment: equipment.join(","),
   };
   const fail = (error: string): JobFormState => ({ error, values });
 
@@ -75,17 +77,20 @@ export async function saveJob(
     if (error) return fail(friendlyDbError(error));
   }
 
-  const { error: crewError } = await supabase.rpc("set_job_crew", {
-    p_job_id: jobId!,
-    p_employee_ids: crew,
-  });
-  if (crewError) {
-    // The job is saved; send them to it to try the crew again.
+  const [{ error: crewError }, { error: equipmentError }] = await Promise.all([
+    supabase.rpc("set_job_crew", { p_job_id: jobId!, p_employee_ids: crew }),
+    supabase.rpc("set_job_equipment", { p_job_id: jobId!, p_equipment_ids: equipment }),
+  ]);
+  const listError = crewError ?? equipmentError;
+  if (listError) {
+    // The job is saved; send them to it to try the crew and equipment again.
     revalidatePath("/admin/jobs");
+    revalidatePath("/admin/equipment");
     if (id === null) redirect(`/admin/jobs/${jobId}?crew=failed`);
-    return fail(`Saved, but the crew didn't save. ${friendlyDbError(crewError)}`);
+    return fail(`Saved, but the crew or equipment didn't save. ${friendlyDbError(listError)}`);
   }
 
   revalidatePath("/admin/jobs");
+  revalidatePath("/admin/equipment");
   redirect("/admin/jobs");
 }

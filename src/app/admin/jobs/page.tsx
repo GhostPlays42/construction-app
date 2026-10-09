@@ -8,10 +8,14 @@ export default async function JobsPage() {
   const { supabase } = await requireAdmin();
   const { data: jobs, error } = await supabase
     .from("jobs")
-    .select("id, name, job_number, client, address, status, job_assignments(count)")
+    .select("id, name, job_number, client, address, status, job_assignments(count), job_equipment(count)")
     .order("name");
 
-  const rows = (jobs ?? []).map((j) => ({ ...j, crewCount: j.job_assignments[0]?.count ?? 0 }));
+  const rows = (jobs ?? []).map((j) => ({
+    ...j,
+    crewCount: j.job_assignments[0]?.count ?? 0,
+    machineCount: j.job_equipment[0]?.count ?? 0,
+  }));
   const byStatus = (s: string) => rows.filter((j) => j.status === s);
 
   const card = (j: (typeof rows)[number]) => (
@@ -31,6 +35,7 @@ export default async function JobsPage() {
         )}
         <span className="text-base text-zinc-600 dark:text-zinc-400">
           {j.crewCount === 0 ? "No crew assigned" : `${j.crewCount} on the crew`}
+          {j.machineCount > 0 && ` · ${j.machineCount} ${j.machineCount === 1 ? "machine" : "machines"}`}
         </span>
       </Link>
     </li>

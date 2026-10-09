@@ -73,6 +73,14 @@ export default async function Home() {
           Job sites
         </Link>
       )}
+      {me.roles?.is_admin && (
+        <Link
+          href="/admin/equipment"
+          className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+        >
+          Equipment
+        </Link>
+      )}
       {owner && (
         <Link
           href="/owner"

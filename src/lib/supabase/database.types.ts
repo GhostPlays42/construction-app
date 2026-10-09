@@ -99,6 +99,44 @@ isOneToOne: false
       referencedColumns: ["key"]
     }
                   ]
+                },"equipment": {
+                  Row: {
+                    "company_id": string,"created_at": string,"down_for_repair": boolean,"equipment_type": string | null,"id": string,"is_active": boolean,"make": string | null,"model": string | null,"name": string,"ownership": string,"rental_company": string | null,"unit_number": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"down_for_repair"?: boolean,"equipment_type"?: string | null,"id"?: string,"is_active"?: boolean,"make"?: string | null,"model"?: string | null,"name": string,"ownership"?: string,"rental_company"?: string | null,"unit_number"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"down_for_repair"?: boolean,"equipment_type"?: string | null,"id"?: string,"is_active"?: boolean,"make"?: string | null,"model"?: string | null,"name"?: string,"ownership"?: string,"rental_company"?: string | null,"unit_number"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "equipment_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"equipment_rates": {
+                  Row: {
+                    "company_id": string,"equipment_id": string,"hourly_rate": number,"updated_at": string
+                  }
+                  Insert: {
+                    "company_id": string,"equipment_id": string,"hourly_rate": number,"updated_at"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"equipment_id"?: string,"hourly_rate"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "equipment_rates_company_id_equipment_id_fkey"
+      columns: ["company_id","equipment_id"]
+isOneToOne: false
+      referencedRelation: "equipment"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"job_assignments": {
                   Row: {
                     "company_id": string,"created_at": string,"employee_id": string,"job_id": string
@@ -118,6 +156,31 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     },{
       foreignKeyName: "job_assignments_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"job_equipment": {
+                  Row: {
+                    "company_id": string,"created_at": string,"equipment_id": string,"job_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"equipment_id": string,"job_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"equipment_id"?: string,"job_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "job_equipment_company_id_equipment_id_fkey"
+      columns: ["company_id","equipment_id"]
+isOneToOne: false
+      referencedRelation: "equipment"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "job_equipment_company_id_job_id_fkey"
       columns: ["company_id","job_id"]
 isOneToOne: false
       referencedRelation: "jobs"
@@ -180,6 +243,9 @@ isOneToOne: false
                            },
 "set_job_crew":
 { Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined
+                           },
+"set_job_equipment":
+{ Args: { "p_equipment_ids": (string)[],"p_job_id": string }; Returns: undefined
                            }
           }
           Enums: {

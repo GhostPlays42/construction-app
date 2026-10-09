@@ -11,3 +11,13 @@ export async function crewChoices(supabase: SupabaseClient<Database>, onCrew: st
     .order("full_name");
   return (data ?? []).filter((p) => p.is_active || onCrew.includes(p.id));
 }
+
+// Equipment that can be ticked for a job, on the same terms as the crew.
+export async function equipmentChoices(supabase: SupabaseClient<Database>, onJob: string[]) {
+  const { data } = await supabase
+    .from("equipment")
+    .select("id, name, unit_number, equipment_type, down_for_repair, is_active")
+    .order("unit_number", { nullsFirst: false })
+    .order("name");
+  return (data ?? []).filter((e) => e.is_active || onJob.includes(e.id));
+}
