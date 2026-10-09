@@ -32,3 +32,17 @@ export function certStatus(expiresOn: string | null): CertStatus {
   if (days <= EXPIRY_WARNING_DAYS) return "soon";
   return "ok";
 }
+
+// Shows a timestamp as "7:12 a.m." in the company's time zone.
+export function formatTime(timestamp: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeStyle: "short", timeZone: TIME_ZONE }).format(
+    new Date(timestamp),
+  );
+}
+
+// Moves a YYYY-MM-DD date by whole days.
+export function addDays(dateISO: string, days: number): string {
+  const d = new Date(`${dateISO}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
