@@ -40,7 +40,7 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
         <p role="status" className="rounded-xl bg-zinc-100 p-4 text-lg dark:bg-zinc-900">
           No signal. You can keep filling in forms; they&apos;ll send when signal comes back.
           <span className="mt-1 block text-base text-zinc-600 dark:text-zinc-400">
-            Job and lists last updated {formatDateTime(snapshot.fetchedAt)}.
+            Job and lists last updated {formatDateTime(snapshot.fetchedAt)}
           </span>
         </p>
       )}
