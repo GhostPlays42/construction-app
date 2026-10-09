@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions";
 import { needsAppCode } from "@/lib/auth";
+import { buildSnapshot } from "@/lib/offline/snapshot";
 import { createClient } from "@/lib/supabase/server";
 import { WorkerHome } from "./home/worker-home";
 
@@ -52,15 +53,18 @@ export default async function Home() {
   const firstName = me.full_name.split(" ")[0];
 
   if (!me.roles?.is_admin) {
-    return (
-      <WorkerHome
-        supabase={supabase}
-        employeeId={me.id}
-        firstName={firstName}
-        companyName={me.companies?.name}
-        signOutButton={signOutButton}
-      />
-    );
+    const snapshot = await buildSnapshot(supabase, user.id).catch(() => null);
+    if (!snapshot) {
+      return (
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-4 py-10">
+          <p role="alert" className="text-lg text-red-600 dark:text-red-400">
+            Couldn&apos;t load your jobs. Refresh to try again.
+          </p>
+          {signOutButton}
+        </main>
+      );
+    }
+    return <WorkerHome initial={snapshot} />;
   }
 
   return (

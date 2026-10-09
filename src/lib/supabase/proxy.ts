@@ -37,8 +37,9 @@ export async function updateSession(request: NextRequest) {
     path === "/login" || path.startsWith("/login/") || path === "/signup";
 
   // Email links sign people in, so they must work whether or not someone is
-  // signed in already.
-  if (path.startsWith("/auth/")) return response;
+  // signed in already. The phone's background requests answer for
+  // themselves (a redirect to the sign-in page would look like success).
+  if (path.startsWith("/auth/") || path.startsWith("/api/")) return response;
 
   // Signed-out people only ever see the sign-in and sign-up screens;
   // signed-in people skip them. Redirects carry the refreshed session

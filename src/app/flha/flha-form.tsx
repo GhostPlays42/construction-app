@@ -1,17 +1,18 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
-import { submitFlha, type FlhaFormState } from "./actions";
+import { useState } from "react";
+import { addToOutbox, sendWaiting } from "@/lib/offline/outbox";
+import { checkFlha, flhaMessage } from "@/lib/offline/flha-rules";
+import type { FlhaPayload, WorkerSnapshot } from "@/lib/offline/types";
 import { SignaturePad } from "./signature-pad";
-
-type Item = { id: string; name: string };
-type Code = Item & { code: string };
 
 const box = "h-7 w-7 flex-none accent-amber-500";
 const row =
   "flex items-center gap-3 rounded-xl border-2 border-zinc-200 px-4 py-3 text-lg has-[:checked]:border-amber-500 dark:border-zinc-800";
 const text =
   "w-full rounded-xl border-2 border-zinc-300 bg-white px-3 py-2 text-lg text-zinc-900 outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+// How long to try sending before going home anyway; home keeps trying.
+const SEND_WAIT_MS = 4000;
 
 function toggle(set: Set<string>, id: string) {
   const next = new Set(set);
@@ -21,52 +22,76 @@ function toggle(set: Set<string>, id: string) {
 }
 
 export function FlhaForm({
-  id,
-  jobId,
-  codes,
-  hazards,
-  ppe,
+  snapshot,
+  job,
+  today,
 }: {
-  id: string;
-  jobId: string;
-  codes: Code[];
-  hazards: Item[];
-  ppe: Item[];
+  snapshot: WorkerSnapshot;
+  job: WorkerSnapshot["jobs"][number];
+  today: string;
 }) {
-  const [state, formAction, pending] = useActionState<FlhaFormState, FormData>(
-    submitFlha.bind(null, id, jobId),
-    {},
-  );
-  // Everything lives in state, so nothing typed is lost if sending fails.
+  const { codes, hazards, ppe } = snapshot.lists;
   const [tasks, setTasks] = useState<Set<string>>(new Set());
   const [controls, setControls] = useState<Map<string, string>>(new Map());
   const [other, setOther] = useState("");
   const [otherControl, setOtherControl] = useState("");
   const [worn, setWorn] = useState<Set<string>>(new Set());
   const [signature, setSignature] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  // Saved on the phone first, then sent. With no signal it waits on the
+  // phone and home shows it as waiting to send.
+  async function submit() {
+    const payload: FlhaPayload = {
+      jobId: job.id,
+      jobName: job.name,
+      workDate: today,
+      filledAt: new Date().toISOString(),
+      tasks: [...tasks],
+      hazards: [...controls].map(([hazard_id, control]) => ({ hazard_id, control })),
+      otherHazard: other.trim(),
+      otherControl: other.trim() ? otherControl.trim() : "",
+      ppe: [...worn],
+      signature,
+    };
+    const problem = checkFlha(payload);
+    if (problem) return setError(flhaMessage(problem));
+
+    setError("");
+    setPending(true);
+    try {
+      await addToOutbox({
+        id: crypto.randomUUID(),
+        kind: "flha",
+        userId: snapshot.userId,
+        employeeId: snapshot.employeeId,
+        createdAt: new Date().toISOString(),
+        status: "waiting",
+        payload,
+      });
+    } catch {
+      setPending(false);
+      return setError("Couldn't save on this phone. Check it has free space and try again.");
+    }
+    await Promise.race([
+      sendWaiting(snapshot.userId).catch(() => null),
+      new Promise((resolve) => setTimeout(resolve, SEND_WAIT_MS)),
+    ]);
+    // A full page load, so the phone's copy of home opens with no signal.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/";
+  }
 
   return (
     <form
-      // Sent by hand rather than through the form's action, which would
-      // clear the ticks and signature on screen after a failed send.
       onSubmit={(e) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        formData.set("filled_at", new Date().toISOString());
-        startTransition(() => formAction(formData));
+        submit();
       }}
       className="flex flex-col gap-8"
       noValidate
     >
-      <input type="hidden" name="tasks" value={JSON.stringify([...tasks])} />
-      <input
-        type="hidden"
-        name="hazards"
-        value={JSON.stringify([...controls].map(([hazard_id, control]) => ({ hazard_id, control })))}
-      />
-      <input type="hidden" name="ppe" value={JSON.stringify([...worn])} />
-      <input type="hidden" name="signature" value={signature} />
-
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-xl font-semibold">1. What are you doing today?</legend>
         {codes.length === 0 && (
@@ -144,8 +169,6 @@ export function FlhaForm({
             />
           )}
         </div>
-        <input type="hidden" name="other_hazard" value={other} />
-        <input type="hidden" name="other_control" value={other.trim() ? otherControl : ""} />
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">
@@ -164,9 +187,9 @@ export function FlhaForm({
       </fieldset>
 
       <div className="flex flex-col gap-3">
-        {state.error && !pending && (
+        {error && !pending && (
           <p role="alert" className="rounded-xl bg-red-50 p-4 text-lg text-red-800 dark:bg-red-950 dark:text-red-200">
-            {state.error}
+            {error}
           </p>
         )}
         <button
@@ -174,7 +197,7 @@ export function FlhaForm({
           disabled={pending}
           className="w-full rounded-xl bg-amber-500 px-4 py-5 text-2xl font-bold text-black active:bg-amber-600 disabled:opacity-50"
         >
-          {pending ? "Sending…" : "Submit FLHA"}
+          {pending ? "Saving…" : "Submit FLHA"}
         </button>
       </div>
     </form>
