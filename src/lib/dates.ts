@@ -46,3 +46,10 @@ export function addDays(dateISO: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+// Shows a timestamp as "Oct 9, 2026, 7:12 a.m." in the company's time zone.
+export function formatDateTime(timestamp: string): string {
+  return new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE }).format(
+    new Date(timestamp),
+  );
+}
