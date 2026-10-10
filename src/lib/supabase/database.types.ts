@@ -106,13 +106,13 @@ isOneToOne: false
                   ]
                 },"companies": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"status": string,"updated_at": string
+                    "created_at": string,"id": string,"keep_years": number | null,"name": string,"status": string,"updated_at": string
                   }
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"status"?: string,"updated_at"?: string
+                    "created_at"?: string,"id"?: string,"keep_years"?: number | null,"name": string,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"status"?: string,"updated_at"?: string
+                    "created_at"?: string,"id"?: string,"keep_years"?: number | null,"name"?: string,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -1101,6 +1101,20 @@ isOneToOne: false
 "remove_push_subscriptions":
 { Args: { "p_endpoints": (string)[] }; Returns: undefined
                            },
+"retention_companies":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
+"retention_delete":
+{ Args: { "p_company": string }; Returns: Json
+                           },
+"retention_files":
+{ Args: { "p_company": string,"p_limit"?: number }; Returns: {
+              "bucket": string,"name": string
+            }[]
+                           },
+"retention_preview":
+{ Args: { "p_years": number }; Returns: Json
+                           },
 "save_dispatch":
 { Args: { "p_date": string,"p_equipment": (string)[],"p_job_id": string,"p_notes": string,"p_people": (string)[],"p_start_time": string }; Returns: undefined
                            },
@@ -1130,6 +1144,9 @@ isOneToOne: false
                            },
 "set_job_equipment":
 { Args: { "p_equipment_ids": (string)[],"p_job_id": string }; Returns: undefined
+                           },
+"set_keep_years":
+{ Args: { "p_years": number }; Returns: undefined
                            },
 "submit_flha":
 { Args: { "p_cost_code_ids": (string)[],"p_filled_at"?: string,"p_hazards": Json,"p_id": string,"p_job_id": string,"p_other_control": string,"p_other_hazard": string,"p_ppe_ids": (string)[],"p_signature": string }; Returns: string

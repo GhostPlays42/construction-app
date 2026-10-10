@@ -21,6 +21,7 @@ const MENU = [
   { href: "/admin/time-cards", label: "Time cards" },
   { href: "/admin/forms", label: "Forms" },
   { href: "/admin/lists", label: "Lists" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 const card =
