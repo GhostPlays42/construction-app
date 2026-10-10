@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions";
 import { needsAppCode } from "@/lib/auth";
 import { buildSnapshot } from "@/lib/offline/snapshot";
 import { pushPublicKey } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
+import { AdminHome } from "./home/admin-home";
 import { WorkerHome } from "./home/worker-home";
 
 export default async function Home() {
@@ -82,92 +82,12 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
-      <div>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">{me.companies?.name}</p>
-        <h1 className="text-3xl font-bold">Hi, {firstName}</h1>
-      </div>
-      <Link
-        href="/admin/reports"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Daily reports
-      </Link>
-      <Link
-        href="/admin/dispatch"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Dispatch
-      </Link>
-      <Link
-        href="/admin/people"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        People
-      </Link>
-      <Link
-        href="/admin/jobs"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Job sites
-      </Link>
-      <Link
-        href="/admin/equipment"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Equipment
-      </Link>
-      <Link
-        href="/admin/flha"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        FLHAs
-      </Link>
-      <Link
-        href="/admin/safety"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Safety meetings
-      </Link>
-      <Link
-        href="/admin/site-photos"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Site photos
-      </Link>
-      <Link
-        href="/admin/trucking-slips"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Trucking slips
-      </Link>
-      <Link
-        href="/admin/time-cards"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Time cards
-      </Link>
-      <Link
-        href="/admin/forms"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Forms
-      </Link>
-      <Link
-        href="/admin/lists"
-        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
-      >
-        Lists
-      </Link>
-      {owner && (
-        <Link
-          href="/owner"
-          className="w-full rounded-xl bg-zinc-100 px-4 py-3 text-center text-lg font-medium dark:bg-zinc-800"
-        >
-          Owner view
-        </Link>
-      )}
-      {signOutButton}
-    </main>
+    <AdminHome
+      supabase={supabase}
+      companyName={me.companies?.name ?? ""}
+      firstName={firstName}
+      owner={!!owner}
+      signOut={signOutButton}
+    />
   );
 }
