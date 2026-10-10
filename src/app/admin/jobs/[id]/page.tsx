@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
+import { formatDate } from "@/lib/dates";
 import { mapLink } from "@/lib/maps";
 import { saveJob } from "../actions";
 import { JobForm } from "../job-form";
@@ -27,7 +29,16 @@ export default async function JobPage({
 
   const onCrew = job.job_assignments.map((a) => a.employee_id);
   const onJob = job.job_equipment.map((e) => e.equipment_id);
-  const [people, machines] = await Promise.all([crewChoices(supabase, onCrew), equipmentChoices(supabase, onJob)]);
+  const [people, machines, { data: reports }] = await Promise.all([
+    crewChoices(supabase, onCrew),
+    equipmentChoices(supabase, onJob),
+    supabase
+      .from("daily_reports")
+      .select("id, work_date, pdf_path")
+      .eq("job_id", job.id)
+      .order("work_date", { ascending: false })
+      .limit(100),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
@@ -68,6 +79,27 @@ export default async function JobPage({
         }}
         isNew={false}
       />
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Daily reports</h2>
+        {!reports?.length ? (
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">No finalized reports yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {reports.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/reports/${job.id}/${r.work_date}`}
+                  className="flex justify-between gap-2 rounded-xl border-2 border-zinc-200 px-4 py-3 text-lg active:bg-zinc-100 dark:border-zinc-800 dark:active:bg-zinc-900"
+                >
+                  <span>{formatDate(r.work_date)}</span>
+                  <span className="text-zinc-600 dark:text-zinc-400">{r.pdf_path ? "PDF" : "PDF not made yet"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
