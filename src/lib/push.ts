@@ -19,7 +19,10 @@ export function pushPublicKey(): string | null {
   return vapid()?.publicKey ?? null;
 }
 
-export type PushMessage = { title: string; body: string; url: string };
+// "tag" groups notifications on the phone: a newer one with the same tag
+// replaces the last.
+export type PushMessage = { title: string; body: string; url: string; tag?: string };
+type Phone = { endpoint: string; p256dh: string; auth: string };
 
 // Sends a notification to every phone of the given people. Phones that no
 // longer take notifications are forgotten. Returns how many phones it
@@ -29,14 +32,23 @@ export async function notify(
   employeeIds: string[],
   message: PushMessage,
 ): Promise<number> {
-  const keys = vapid();
-  if (!keys || employeeIds.length === 0) return 0;
+  if (!vapid() || employeeIds.length === 0) return 0;
   const { data: phones } = await supabase
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")
     .in("employee_id", employeeIds);
-  if (!phones?.length) return 0;
+  return sendToPhones(supabase, phones ?? [], message);
+}
 
+// Sends a notification to the given phones, forgetting the ones that are
+// gone (where the signed-in person is allowed to). Never throws.
+export async function sendToPhones(
+  supabase: SupabaseClient<Database>,
+  phones: Phone[],
+  message: PushMessage,
+): Promise<number> {
+  const keys = vapid();
+  if (!keys || phones.length === 0) return 0;
   const payload = JSON.stringify(message);
   const gone: string[] = [];
   let reached = 0;
@@ -55,6 +67,6 @@ export async function notify(
       }
     }),
   );
-  if (gone.length) await supabase.rpc("remove_push_subscriptions", { p_endpoints: gone });
+  if (gone.length) await supabase.rpc("remove_push_subscriptions", { p_endpoints: gone }).then(() => {}, () => {});
   return reached;
 }

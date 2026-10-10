@@ -29,6 +29,8 @@ export type WorkerSnapshot = {
   // Where the office has sent this worker, today and the next two weeks.
   // Missing on older copies.
   schedule?: ScheduleDay[];
+  // New chat messages from others, per job. Missing on older copies.
+  chatUnread?: { job_id: string; unread: number }[];
   // Who is on each of the worker's active jobs, for the safety meeting sign-off.
   crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {

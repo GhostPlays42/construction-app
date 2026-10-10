@@ -6,15 +6,19 @@ export const metadata: Metadata = { title: "Job sites" };
 
 export default async function JobsPage() {
   const { supabase } = await requireAdmin();
-  const { data: jobs, error } = await supabase
-    .from("jobs")
-    .select("id, name, job_number, client, address, status, job_assignments(count), job_equipment(count)")
-    .order("name");
+  const [{ data: jobs, error }, { data: unread }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, name, job_number, client, address, status, job_assignments(count), job_equipment(count)")
+      .order("name"),
+    supabase.rpc("chat_unread"),
+  ]);
 
   const rows = (jobs ?? []).map((j) => ({
     ...j,
     crewCount: j.job_assignments[0]?.count ?? 0,
     machineCount: j.job_equipment[0]?.count ?? 0,
+    unread: unread?.find((u) => u.job_id === j.id)?.unread ?? 0,
   }));
   const byStatus = (s: string) => rows.filter((j) => j.status === s);
 
@@ -37,6 +41,11 @@ export default async function JobsPage() {
           {j.crewCount === 0 ? "No crew assigned" : `${j.crewCount} on the crew`}
           {j.machineCount > 0 && ` · ${j.machineCount} ${j.machineCount === 1 ? "machine" : "machines"}`}
         </span>
+        {j.unread > 0 && (
+          <span className="text-base font-medium text-amber-700 dark:text-amber-400">
+            {j.unread} new chat {j.unread === 1 ? "message" : "messages"}
+          </span>
+        )}
       </Link>
     </li>
   );

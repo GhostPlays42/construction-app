@@ -29,7 +29,7 @@ export default async function JobPage({
 
   const onCrew = job.job_assignments.map((a) => a.employee_id);
   const onJob = job.job_equipment.map((e) => e.equipment_id);
-  const [people, machines, { data: reports }] = await Promise.all([
+  const [people, machines, { data: reports }, { data: unread }] = await Promise.all([
     crewChoices(supabase, onCrew),
     equipmentChoices(supabase, onJob),
     supabase
@@ -38,7 +38,9 @@ export default async function JobPage({
       .eq("job_id", job.id)
       .order("work_date", { ascending: false })
       .limit(100),
+    supabase.rpc("chat_unread"),
   ]);
+  const newMessages = unread?.find((u) => u.job_id === job.id)?.unread ?? 0;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-10">
@@ -54,6 +56,17 @@ export default async function JobPage({
             Open address in Maps
           </a>
         )}
+        <Link
+          href={`/chat/${job.id}`}
+          className="flex items-center justify-between rounded-xl border-2 border-zinc-300 px-4 py-3 text-lg font-semibold active:bg-zinc-100 dark:border-zinc-700 dark:active:bg-zinc-900"
+        >
+          <span>Job chat</span>
+          {newMessages > 0 ? (
+            <span className="rounded-full bg-amber-500 px-3 py-1 text-base text-black">{newMessages} new</span>
+          ) : (
+            <span aria-hidden>→</span>
+          )}
+        </Link>
       </div>
 
       {crewParam === "failed" && (

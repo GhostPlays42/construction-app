@@ -20,7 +20,7 @@ export async function buildSnapshot(
 
   const since = addDays(todayISO(), -1);
   const today = todayISO();
-  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries, slips, schedule] = await Promise.all([
+  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries, slips, schedule, unread] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -66,6 +66,7 @@ export async function buildSnapshot(
       .lte("work_date", addDays(today, 13))
       .order("work_date")
       .order("start_time", { nullsFirst: false }),
+    supabase.rpc("chat_unread"),
   ]);
   const failed =
     jobs.error ??
@@ -79,7 +80,8 @@ export async function buildSnapshot(
     crews.error ??
     entries.error ??
     slips.error ??
-    schedule.error;
+    schedule.error ??
+    unread.error;
   if (failed) throw new Error(failed.message);
 
   const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
@@ -116,6 +118,7 @@ export async function buildSnapshot(
       led_by_name: employees?.full_name ?? "",
     })),
     crews: crews.data ?? [],
+    chatUnread: unread.data ?? [],
     schedule: (schedule.data ?? []).map(({ jobs, ...s }) => ({
       ...s,
       job_name: jobs?.name ?? "A job",

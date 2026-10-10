@@ -69,6 +69,8 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
   const waiting = outbox.filter((i) => i.status === "waiting");
   const failed = outbox.filter((i) => i.status === "failed");
 
+  const unreadFor = (jobId: string) => snapshot.chatUnread?.find((u) => u.job_id === jobId)?.unread ?? 0;
+
   const choose = (jobId: string | null) => savePick(initial.userId, today, jobId);
 
   return (
@@ -350,6 +352,8 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
               </a>
             )}
           </section>
+
+          <ChatLink jobId={job.id} unread={unreadFor(job.id)} offline={offline} />
         </>
       )}
 
@@ -383,6 +387,32 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
 
       <SignOutButton userId={initial.userId} waiting={waiting.length} />
     </main>
+  );
+}
+
+// Opens the job's chat, with how many new messages are waiting. Chat needs
+// signal, so it says so instead of opening with none.
+function ChatLink({ jobId, unread, offline }: { jobId: string; unread: number; offline: boolean }) {
+  if (offline) {
+    return (
+      <p className="flex w-full items-center justify-between rounded-xl border-2 border-zinc-200 px-4 py-4 text-xl text-zinc-500 dark:border-zinc-800">
+        <span>Job chat</span>
+        <span className="text-base">Needs signal</span>
+      </p>
+    );
+  }
+  return (
+    <a
+      href={`/chat/${jobId}`}
+      className="flex w-full items-center justify-between rounded-xl border-2 border-zinc-300 px-4 py-4 text-xl font-semibold active:bg-zinc-100 dark:border-zinc-700 dark:active:bg-zinc-900"
+    >
+      <span>Job chat</span>
+      {unread > 0 ? (
+        <span className="rounded-full bg-amber-500 px-3 py-1 text-base text-black">{unread} new</span>
+      ) : (
+        <span aria-hidden>→</span>
+      )}
+    </a>
   );
 }
 
