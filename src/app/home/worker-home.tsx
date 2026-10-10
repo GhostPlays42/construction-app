@@ -5,8 +5,17 @@ import { mapLink } from "@/lib/maps";
 import { flhaMessage } from "@/lib/offline/flha-rules";
 import { removeFromOutbox } from "@/lib/offline/outbox";
 import { safetyMessage } from "@/lib/offline/safety-rules";
+import { sitePhotoMessage } from "@/lib/offline/site-photo-rules";
 import { hoursText, timeCardMessage } from "@/lib/offline/time-card-rules";
-import { flhaStatus, safetyStatus, savePick, timeCardFor, todaysJob, usePick } from "@/lib/offline/today";
+import {
+  flhaStatus,
+  safetyStatus,
+  savePick,
+  sitePhotosToday,
+  timeCardFor,
+  todaysJob,
+  usePick,
+} from "@/lib/offline/today";
 import type { OutboxItem, WorkerSnapshot } from "@/lib/offline/types";
 import { useWorkerData } from "@/lib/offline/use-worker-data";
 import { SignOutButton } from "./sign-out-button";
@@ -15,15 +24,17 @@ const FORM_NAMES: Record<OutboxItem["kind"], string> = {
   flha: "FLHA",
   "time-card": "time card",
   "safety-meeting": "safety meeting",
+  "site-photos": "site photos & notes",
 };
 const MESSAGES: Record<OutboxItem["kind"], (code: string) => string> = {
   flha: flhaMessage,
   "time-card": timeCardMessage,
   "safety-meeting": safetyMessage,
+  "site-photos": sitePhotoMessage,
 };
 
 // Forms still being built. They'll unlock once the FLHA is done, like the time card.
-const COMING = ["Trucking slip", "Site photos"];
+const COMING = ["Trucking slip"];
 
 const card = "flex flex-col gap-1 rounded-xl border-2 border-zinc-200 p-4 dark:border-zinc-800";
 
@@ -39,6 +50,8 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
   const flhaDone = flha?.state === "sent" || flha?.state === "waiting";
   const timeCard = job ? timeCardFor(snapshot, outbox, job.id, today) : null;
   const meeting = job ? safetyStatus(snapshot, outbox, job.id, today) : null;
+  const photos = job ? sitePhotosToday(snapshot, outbox, job.id, today) : null;
+  const photosDone = photos ? photos.sent + photos.waiting : 0;
   const waiting = outbox.filter((i) => i.status === "waiting");
   const failed = outbox.filter((i) => i.status === "failed");
 
@@ -251,6 +264,30 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
               >
                 <span>Time card</span>
                 <span aria-hidden>→</span>
+              </a>
+            )}
+            {!flhaDone ? (
+              <Locked name="Site photos & notes" />
+            ) : (
+              <a
+                href="/site-photos"
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
+                  photosDone
+                    ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
+                    : "border-2 border-amber-500 active:bg-amber-50 dark:active:bg-amber-950"
+                }`}
+              >
+                <span>
+                  Site photos &amp; notes
+                  {photosDone > 0 && (
+                    <span className="block text-base font-normal">
+                      {photos?.waiting ? "Waiting to send · " : ""}Tap to send more
+                    </span>
+                  )}
+                </span>
+                <span className="text-lg font-normal">
+                  {photosDone > 0 ? `✓ ${photosDone} today` : <span aria-hidden>→</span>}
+                </span>
               </a>
             )}
             {COMING.map((name) => (

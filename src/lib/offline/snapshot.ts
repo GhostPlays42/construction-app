@@ -5,7 +5,7 @@ import type { WorkerSnapshot } from "./types";
 
 // Everything a worker's screens need, in one go. Row level security limits
 // jobs (and their machines, crews and safety meetings) to the ones they're
-// assigned to, and FLHAs and time cards to their own. Returns null
+// assigned to, and FLHAs, time cards and site photos to their own. Returns null
 // when the person has no access.
 export async function buildSnapshot(
   supabase: SupabaseClient<Database>,
@@ -13,13 +13,13 @@ export async function buildSnapshot(
 ): Promise<WorkerSnapshot | null> {
   const { data: me } = await supabase
     .from("employees")
-    .select("id, full_name, companies(name)")
+    .select("id, company_id, full_name, companies(name)")
     .eq("user_id", userId)
     .maybeSingle();
   if (!me) return null;
 
   const since = addDays(todayISO(), -1);
-  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews] = await Promise.all([
+  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -46,6 +46,11 @@ export async function buildSnapshot(
       .select("id, job_id, work_date, filled_at, employees(full_name)")
       .gte("work_date", since),
     supabase.rpc("my_job_crews"),
+    supabase
+      .from("site_entries")
+      .select("id, job_id, work_date, filled_at")
+      .eq("employee_id", me.id)
+      .gte("work_date", since),
   ]);
   const failed =
     jobs.error ??
@@ -56,7 +61,8 @@ export async function buildSnapshot(
     ppe.error ??
     machines.error ??
     meetings.error ??
-    crews.error;
+    crews.error ??
+    entries.error;
   if (failed) throw new Error(failed.message);
 
   const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
@@ -74,6 +80,7 @@ export async function buildSnapshot(
     employeeId: me.id,
     firstName: me.full_name.split(" ")[0],
     companyName: me.companies?.name ?? "",
+    companyId: me.company_id,
     fetchedAt: new Date().toISOString(),
     jobs: jobs.data ?? [],
     flhas: flhas.data ?? [],
@@ -92,6 +99,7 @@ export async function buildSnapshot(
       led_by_name: employees?.full_name ?? "",
     })),
     crews: crews.data ?? [],
+    siteEntries: entries.data ?? [],
     lists: {
       codes: codes.data ?? [],
       hazards: hazards.data ?? [],

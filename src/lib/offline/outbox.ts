@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/client";
+import { photoPath } from "./site-photo-rules";
 import { kv, outboxStore } from "./store";
 import type { OutboxItem, WorkerSnapshot } from "./types";
 
@@ -7,6 +9,8 @@ import type { OutboxItem, WorkerSnapshot } from "./types";
 const CHANGED = "outbox-changed";
 // A send that takes longer than this is treated as no signal; it retries later.
 const SEND_TIMEOUT_MS = 20_000;
+// Photos are bigger, so each gets longer.
+const PHOTO_TIMEOUT_MS = 90_000;
 
 function changed() {
   window.dispatchEvent(new Event(CHANGED));
@@ -37,6 +41,7 @@ export async function removeFromOutbox(id: string) {
 export function officeHas(snapshot: WorkerSnapshot, item: OutboxItem): boolean {
   if (item.kind === "flha") return snapshot.flhas.some((f) => f.id === item.id);
   if (item.kind === "safety-meeting") return snapshot.safetyMeetings.some((m) => m.id === item.id);
+  if (item.kind === "site-photos") return (snapshot.siteEntries ?? []).some((e) => e.id === item.id);
   return snapshot.timeCards.some(
     (c) => c.id === item.id && Date.parse(c.filled_at) >= Date.parse(item.payload.filledAt),
   );
@@ -64,12 +69,26 @@ export function sendWaiting(userId: string): Promise<SendResult> {
     try {
       for (const item of await outboxFor(userId)) {
         if (item.status !== "waiting") continue;
+        let body: unknown = { id: item.id, employeeId: item.employeeId, ...item.payload };
+        if (item.kind === "site-photos") {
+          // Photos go straight to storage first; the form then says which they are.
+          const uploaded = await uploadPhotos(item);
+          if (uploaded === "refused") {
+            await outboxStore.put({ ...item, status: "failed", error: "upload_refused" });
+            continue;
+          }
+          if (uploaded !== "sent") return uploaded;
+          body = {
+            ...(body as object),
+            photos: item.payload.photos.map((p) => ({ id: p.id, cost_code_id: p.costCodeId, caption: p.caption })),
+          };
+        }
         let res: Response;
         try {
           res = await fetch(`/api/outbox/${item.kind}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: item.id, employeeId: item.employeeId, ...item.payload }),
+            body: JSON.stringify(body),
             signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
           });
         } catch {
@@ -94,6 +113,48 @@ export function sendWaiting(userId: string): Promise<SendResult> {
     }
   })();
   return sending;
+}
+
+// Uploads a site photos form's photos that haven't reached storage yet,
+// marking each one on the phone as it goes, so a lost signal part way
+// through only resends the rest.
+async function uploadPhotos(
+  item: Extract<OutboxItem, { kind: "site-photos" }>,
+): Promise<"sent" | "offline" | "signed_out" | "refused"> {
+  const supabase = createClient();
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return "signed_out";
+  if (data.session.user.id !== item.userId) return "offline";
+  const bucket = supabase.storage.from("site-photos");
+  for (const photo of item.payload.photos) {
+    if (photo.uploaded) continue;
+    const path = photoPath(item.payload.companyId, item.id, photo.id);
+    let error: { message: string; statusCode?: string; status?: number } | null;
+    try {
+      ({ error } = await Promise.race([
+        bucket.upload(path, photo.blob, { contentType: "image/jpeg", upsert: false }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), PHOTO_TIMEOUT_MS)),
+      ]));
+    } catch {
+      return "offline";
+    }
+    const status = Number(error?.statusCode ?? error?.status ?? 0);
+    // Already there from an earlier try that lost signal before it heard back.
+    const already = status === 409 || /already exists/i.test(error?.message ?? "");
+    if (error && !already) {
+      const message = error.message ?? "";
+      if (status === 401 || /jwt|token/i.test(message)) return "signed_out";
+      // Turned away by the storage rules (wrong company, not an image, too
+      // big): it will never go, so stop retrying.
+      if (/row-level security|mime|size|too large/i.test(message) || status === 413 || status === 415) {
+        return "refused";
+      }
+      return "offline";
+    }
+    photo.uploaded = true;
+    await outboxStore.put(item);
+  }
+  return "sent";
 }
 
 // The last copy of the worker's job and lists this phone got from the server.

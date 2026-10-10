@@ -476,6 +476,62 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"site_entries": {
+                  Row: {
+                    "company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"notes": string | null,"submitted_at": string,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"notes"?: string | null,"submitted_at"?: string,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"employee_id"?: string,"filled_at"?: string,"id"?: string,"job_id"?: string,"notes"?: string | null,"submitted_at"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "site_entries_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "site_entries_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_entries_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"site_photos": {
+                  Row: {
+                    "caption": string | null,"code": string | null,"code_name": string | null,"company_id": string,"cost_code_id": string | null,"entry_id": string,"id": string,"path": string,"position": number
+                  }
+                  Insert: {
+                    "caption"?: string | null,"code"?: string | null,"code_name"?: string | null,"company_id": string,"cost_code_id"?: string | null,"entry_id": string,"id": string,"path": string,"position": number
+                  }
+                  Update: {
+                    "caption"?: string | null,"code"?: string | null,"code_name"?: string | null,"company_id"?: string,"cost_code_id"?: string | null,"entry_id"?: string,"id"?: string,"path"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "site_photos_company_id_cost_code_id_fkey"
+      columns: ["company_id","cost_code_id"]
+isOneToOne: false
+      referencedRelation: "cost_codes"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "site_photos_company_id_entry_id_fkey"
+      columns: ["company_id","entry_id"]
+isOneToOne: false
+      referencedRelation: "site_entries"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"time_card_changes": {
                   Row: {
                     "changed_at": string,"changed_by": string,"company_id": string,"field": string,"id": number,"new_value": string | null,"old_value": string | null,"time_card_id": string
@@ -616,6 +672,9 @@ isOneToOne: false
                            },
 "submit_safety_meeting":
 { Args: { "p_attendees": Json,"p_filled_at"?: string,"p_hazard_ids": (string)[],"p_id": string,"p_job_id": string,"p_other_hazard": string,"p_topic": string }; Returns: string
+                           },
+"submit_site_entry":
+{ Args: { "p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_notes": string,"p_photos": Json }; Returns: string
                            },
 "submit_time_card":
 { Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_lines": Json,"p_start": string,"p_work_date": string }; Returns: string
