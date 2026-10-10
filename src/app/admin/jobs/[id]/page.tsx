@@ -29,7 +29,7 @@ export default async function JobPage({
 
   const onCrew = job.job_assignments.map((a) => a.employee_id);
   const onJob = job.job_equipment.map((e) => e.equipment_id);
-  const [people, machines, { data: reports }, { data: unread }] = await Promise.all([
+  const [people, machines, { data: reports }, { data: unread }, { data: forms }] = await Promise.all([
     crewChoices(supabase, onCrew),
     equipmentChoices(supabase, onJob),
     supabase
@@ -39,7 +39,9 @@ export default async function JobPage({
       .order("work_date", { ascending: false })
       .limit(100),
     supabase.rpc("chat_unread"),
+    supabase.from("forms").select("id, name, all_jobs, form_jobs(job_id)").eq("is_active", true).order("name"),
   ]);
+  const jobForms = (forms ?? []).filter((f) => f.all_jobs || f.form_jobs.some((j) => j.job_id === job.id));
   const newMessages = unread?.find((u) => u.job_id === job.id)?.unread ?? 0;
 
   return (
@@ -92,6 +94,36 @@ export default async function JobPage({
         }}
         isNew={false}
       />
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Forms on this job</h2>
+        {jobForms.length === 0 ? (
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+            None. Put forms on jobs from{" "}
+            <Link href="/admin/forms" className="underline">
+              Forms
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {jobForms.map((f) => (
+              <li key={f.id}>
+                <Link
+                  href={`/admin/forms/${f.id}`}
+                  className="flex justify-between gap-2 rounded-xl border-2 border-zinc-200 px-4 py-3 text-lg active:bg-zinc-100 dark:border-zinc-800 dark:active:bg-zinc-900"
+                >
+                  <span>{f.name}</span>
+                  <span className="text-zinc-600 dark:text-zinc-400">{f.all_jobs ? "All jobs" : "This job"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href={`/admin/forms/sent?job=${job.id}`} className="self-start text-lg text-amber-700 underline dark:text-amber-400">
+          Forms sent on this job
+        </Link>
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">Daily reports</h2>

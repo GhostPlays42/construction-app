@@ -1,6 +1,7 @@
--- Safety meetings: anyone on a job runs one per job per day after their FLHA;
--- crew present sign or are tapped; it is saved once and never changed. Crew
--- see that it happened, signatures stay private, nothing crosses companies.
+-- Safety meetings: a supervisor on a job runs one per job per day, before or
+-- after their FLHA; crew present sign or are tapped; it is saved once and
+-- never changed. Crew see that it happened, signatures stay private, nothing
+-- crosses companies.
 begin;
 select plan(24);
 
@@ -19,7 +20,7 @@ insert into public.employees (id, company_id, user_id, full_name, role_key) valu
   ('20000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000000a',
    '00000000-0000-0000-0000-0000000000a1', 'Admin A', 'admin'),
   ('20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a',
-   '00000000-0000-0000-0000-0000000000a2', 'Worker A', 'employee'),
+   '00000000-0000-0000-0000-0000000000a2', 'Worker A', 'supervisor'),
   ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a',
    '00000000-0000-0000-0000-0000000000a3', 'Worker A3', 'employee'),
   ('20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-00000000000a',
@@ -36,12 +37,6 @@ insert into public.job_assignments (job_id, employee_id, company_id) values
   ('30000000-0000-0000-0000-0000000000a1', '20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a'),
   ('30000000-0000-0000-0000-0000000000a1', '20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a'),
   ('30000000-0000-0000-0000-0000000000a2', '20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-00000000000a');
-
--- Worker A did today's FLHA; A3 didn't.
-insert into public.flhas (id, company_id, job_id, employee_id, work_date, filled_at, signature) values
-  ('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000a',
-   '30000000-0000-0000-0000-0000000000a1', '20000000-0000-0000-0000-0000000000a2',
-   (now() at time zone 'America/Vancouver')::date, now() - interval '2 hours', 'M1 1');
 
 create function pg_temp.login(uid uuid, aal text) returns void language sql as $$
   select set_config('request.jwt.claims',
@@ -70,12 +65,12 @@ create function pg_temp.submit(
     coalesce(p_hazards, array[(select noise from ids)]), p_other, p_topic, p_crew, p_at)
 $$;
 
--- Worker A3 (no FLHA) ----------------------------------------------------------
+-- Worker A3 is not a supervisor ------------------------------------------------
 select pg_temp.login('00000000-0000-0000-0000-0000000000a3', 'aal1');
 select throws_ok($$select pg_temp.submit('90000000-0000-0000-0000-000000000009')$$,
-  'P0001', 'flha_required', 'not before their own FLHA');
+  'P0001', 'supervisors_only', 'only supervisors run it');
 
--- Worker A -----------------------------------------------------------------------
+-- Worker A, a supervisor with no FLHA yet today --------------------------------
 select pg_temp.login('00000000-0000-0000-0000-0000000000a2', 'aal1');
 select is((select count(*)::integer from public.my_job_crews()), 2, 'sees the crew of their own job only');
 select throws_ok($$select pg_temp.submit('90000000-0000-0000-0000-000000000001',
@@ -98,7 +93,7 @@ select throws_ok($$select pg_temp.submit('90000000-0000-0000-0000-000000000001',
   'P0001', 'bad_time', 'not from a wrong phone clock');
 
 select is(pg_temp.submit('90000000-0000-0000-0000-000000000001', p_other => 'Wasps'),
-  '90000000-0000-0000-0000-000000000001'::uuid, 'a good meeting is saved');
+  '90000000-0000-0000-0000-000000000001'::uuid, 'a good meeting is saved, before their FLHA');
 select is((select string_agg(name || ':' || (signature is not null)::text, ',' order by position)
            from public.safety_meeting_attendees), 'Worker A:true,Worker A3:false',
   'who signed and who was tapped');

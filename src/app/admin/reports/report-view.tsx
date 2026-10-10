@@ -1,3 +1,4 @@
+import { AnswerValue } from "@/app/admin/forms/answer-value";
 import { formatDate, formatTime } from "@/lib/dates";
 import { clock, hours, type ReportContent } from "@/lib/daily-report";
 
@@ -236,6 +237,24 @@ export function ReportView({ report, photoUrl }: { report: ReportContent; photoU
           ))
         )}
       </Section>
+
+      {(report.forms ?? []).map((f) => (
+        <Section key={f.name} title={f.name}>
+          {f.entries.map((e, i) => (
+            <div key={i} className="flex flex-col gap-3">
+              <p className="font-medium">
+                {e.sent_by} <span className={`font-normal ${muted}`}>at {formatTime(e.filled_at)}</span>
+              </p>
+              {e.answers.map((a, n) => (
+                <div key={n} className="flex flex-col gap-1 pl-4">
+                  <p className={`text-base ${muted}`}>{a.label}</p>
+                  <AnswerValue type={a.type} value={a.value} photoUrl={photoUrl} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </Section>
+      ))}
     </div>
   );
 }

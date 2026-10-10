@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import { formatDate, formatDateTime, formatTime } from "@/lib/dates";
 import { clock, hours, type ReportContent } from "@/lib/daily-report";
+import { answerText } from "@/lib/forms";
 
 // Letter size, in points.
 const PAGE_W = 612;
@@ -22,6 +23,11 @@ function clean(text: string): string {
     })
     .join("");
 }
+
+type Bucket = "site-photos" | "slip-photos" | "form-photos";
+
+// Finger signatures are drawn in a 600 by 200 box (see SignaturePad).
+const SIGNATURE_SCALE = 0.4;
 
 class Writer {
   doc: PDFDocument;
@@ -104,6 +110,16 @@ class Writer {
     this.y -= points;
   }
 
+  // A finger signature, kept as SVG path data.
+  signature(path: string, indent = 0) {
+    const w = 600 * SIGNATURE_SCALE;
+    const h = 200 * SIGNATURE_SCALE;
+    this.room(h + 6);
+    this.page.drawRectangle({ x: MARGIN + indent, y: this.y - h, width: w, height: h, borderColor: GREY, borderWidth: 0.5 });
+    this.page.drawSvgPath(path, { x: MARGIN + indent, y: this.y, scale: SIGNATURE_SCALE, borderColor: BLACK, borderWidth: 1.5 });
+    this.y -= h + 6;
+  }
+
   // Photos two to a row, each with a caption under it.
   photos(items: { image: PDFImage | null; caption: string }[]) {
     const gap = 12;
@@ -137,18 +153,18 @@ class Writer {
 }
 
 // Builds the report's PDF. `photo` returns a photo's JPEG bytes by its
-// storage path (site-photos or slip-photos bucket), or null if it can't.
+// storage path (site-photos, slip-photos or form-photos bucket), or null if it can't.
 export async function reportPdf(
   report: ReportContent,
   finalized: { at: string; by: string },
-  photo: (bucket: "site-photos" | "slip-photos", path: string) => Promise<Uint8Array | null>,
+  photo: (bucket: Bucket, path: string) => Promise<Uint8Array | null>,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Daily report – ${report.job.name} – ${formatDate(report.date)}`);
   doc.setCreator("Construction App");
   const w = new Writer(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
 
-  const load = async (bucket: "site-photos" | "slip-photos", path: string) => {
+  const load = async (bucket: Bucket, path: string) => {
     const bytes = await photo(bucket, path);
     if (!bytes) return null;
     try {
@@ -276,6 +292,25 @@ export async function reportPdf(
     if (images.length > 0) {
       w.space(4);
       w.photos(images);
+    }
+  }
+
+  // Forms put in the daily report, each with its own section.
+  for (const f of report.forms ?? []) {
+    w.heading(f.name);
+    for (const e of f.entries) {
+      w.space(2);
+      w.text(`${e.sent_by} at ${formatTime(e.filled_at)}`, { bold: true, gap: 4 });
+      for (const a of e.answers) {
+        w.text(a.label, { color: GREY, indent: 12 });
+        if (a.type === "signature" && typeof a.value === "string" && a.value) {
+          w.signature(a.value, 12);
+        } else if (a.type === "photo" && Array.isArray(a.value) && a.value.length > 0) {
+          w.photos(await Promise.all(a.value.map(async (path) => ({ image: await load("form-photos", path), caption: "" }))));
+        } else {
+          w.text(answerText(a.type, a.value), { indent: 12, gap: 5 });
+        }
+      }
     }
   }
 

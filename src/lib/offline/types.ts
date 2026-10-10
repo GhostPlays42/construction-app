@@ -1,8 +1,13 @@
+import type { Answers, Frequency, Question } from "@/lib/forms";
+
 // What a worker's phone keeps so their screens work without signal.
 export type WorkerSnapshot = {
   userId: string;
   employeeId: string;
   firstName: string;
+  // Supervisors run the safety meeting and see supervisor-only forms.
+  // Missing on older copies.
+  isSupervisor?: boolean;
   companyName: string;
   // Missing on copies saved before site photos existed.
   companyId?: string;
@@ -13,7 +18,7 @@ export type WorkerSnapshot = {
   flhas: { id: string; job_id: string; work_date: string; filled_at: string }[];
   // This worker's recent time cards, so they can see and change them.
   timeCards: TimeCardCopy[];
-  // Recent safety meetings on the worker's jobs, run by anyone on the crew.
+  // Recent safety meetings on the worker's jobs, run by a supervisor.
   safetyMeetings: { id: string; job_id: string; work_date: string; filled_at: string; led_by_name: string }[];
   // This worker's recent site photos & notes. Missing on older copies.
   siteEntries?: { id: string; job_id: string; work_date: string; filled_at: string }[];
@@ -31,6 +36,19 @@ export type WorkerSnapshot = {
   schedule?: ScheduleDay[];
   // New chat messages from others, per job. Missing on older copies.
   chatUnread?: { job_id: string; unread: number }[];
+  // The office's forms on the worker's jobs, latest version. Missing on older copies.
+  forms?: JobFormCopy[];
+  // Recent sent forms: the worker's own, and once-a-day forms sent by anyone
+  // on their jobs. Missing on older copies.
+  formSubmissions?: {
+    id: string;
+    form_id: string;
+    job_id: string;
+    work_date: string;
+    filled_at: string;
+    sent_by: string;
+    mine: boolean;
+  }[];
   // Who is on each of the worker's active jobs, for the safety meeting sign-off.
   crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {
@@ -131,6 +149,33 @@ export type TruckingSlipPayload = {
   photo: { blob: Blob; uploaded?: boolean };
 };
 
+// A form the office built, as it's used on one job.
+export type JobFormCopy = {
+  job_id: string;
+  form_id: string;
+  name: string;
+  frequency: Frequency;
+  version_id: string;
+  questions: Question[];
+};
+
+export type JobFormPayload = {
+  jobId: string;
+  jobName: string;
+  // Photos are stored in this company's folder.
+  companyId: string;
+  workDate: string;
+  filledAt: string;
+  formId: string;
+  formName: string;
+  // The version the questions came from.
+  versionId: string;
+  // Keyed by question id; a photo question's answer is its photo ids.
+  answers: Answers;
+  // Shrunk on the phone; "uploaded" once each reaches storage.
+  photos: { id: string; blob: Blob; uploaded?: boolean }[];
+};
+
 // A form saved on the phone that hasn't reached the office yet.
 export type OutboxItem = (
   | { kind: "flha"; payload: FlhaPayload }
@@ -138,6 +183,7 @@ export type OutboxItem = (
   | { kind: "safety-meeting"; payload: SafetyMeetingPayload }
   | { kind: "site-photos"; payload: SitePhotosPayload }
   | { kind: "trucking-slip"; payload: TruckingSlipPayload }
+  | { kind: "job-form"; payload: JobFormPayload }
 ) & {
   id: string;
   userId: string;

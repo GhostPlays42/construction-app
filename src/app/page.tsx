@@ -148,6 +148,12 @@ export default async function Home() {
         Time cards
       </Link>
       <Link
+        href="/admin/forms"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        Forms
+      </Link>
+      <Link
         href="/admin/lists"
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >
