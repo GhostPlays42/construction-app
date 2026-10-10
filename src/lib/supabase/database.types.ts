@@ -74,6 +74,37 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"daily_reports": {
+                  Row: {
+                    "company_id": string,"content": NonNullable<Json>,"finalized_at": string,"finalized_by": string,"id": string,"job_id": string,"pdf_path": string | null,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"content": NonNullable<Json>,"finalized_at"?: string,"finalized_by": string,"id"?: string,"job_id": string,"pdf_path"?: string | null,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"content"?: NonNullable<Json>,"finalized_at"?: string,"finalized_by"?: string,"id"?: string,"job_id"?: string,"pdf_path"?: string | null,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "daily_reports_company_id_finalized_by_fkey"
+      columns: ["company_id","finalized_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "daily_reports_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "daily_reports_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"employee_rates": {
                   Row: {
                     "company_id": string,"employee_id": string,"hourly_rate": number,"updated_at": string
@@ -712,6 +743,17 @@ isOneToOne: false
 "check_trucking_slip":
 { Args: { "p_id": string,"p_loads": number,"p_material": string,"p_slip_date": string,"p_ticket_number": string,"p_tonnage": number,"p_truck_number": string,"p_trucking_company": string }; Returns: undefined
                            },
+"daily_report_content":
+{ Args: { "p_date": string,"p_job_id": string }; Returns: Json
+                           },
+"daily_report_days":
+{ Args: { "p_days"?: number }; Returns: {
+              "finalized_at": string,"has_pdf": boolean,"job_id": string,"job_name": string,"job_number": string,"report_id": string,"work_date": string
+            }[]
+                           },
+"finalize_daily_report":
+{ Args: { "p_date": string,"p_job_id": string }; Returns: string
+                           },
 "hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
                            },
@@ -722,6 +764,9 @@ isOneToOne: false
                            },
 "save_trucking_slip_reading":
 { Args: { "p_id": string,"p_values": Json }; Returns: undefined
+                           },
+"set_daily_report_pdf":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "set_job_crew":
 { Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined

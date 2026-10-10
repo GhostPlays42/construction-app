@@ -87,6 +87,12 @@ export default async function Home() {
         <h1 className="text-3xl font-bold">Hi, {firstName}</h1>
       </div>
       <Link
+        href="/admin/reports"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        Daily reports
+      </Link>
+      <Link
         href="/admin/people"
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >
