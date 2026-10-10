@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { needsAppCode } from "@/lib/auth";
+import { pushPublicKey } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
+import { PushKeys } from "./push-keys";
 
 export const metadata: Metadata = { title: "Owner view" };
 
@@ -89,6 +91,20 @@ export default async function OwnerPage() {
           </ul>
         </>
       )}
+
+      <section className="flex flex-col gap-2 rounded-xl border-2 border-zinc-200 p-4 dark:border-zinc-800">
+        <h2 className="text-xl font-semibold">App notifications</h2>
+        {pushPublicKey() ? (
+          <p className="text-base text-green-700 dark:text-green-400">✓ Set up. Workers can turn them on from their home screen.</p>
+        ) : (
+          <>
+            <p className="text-base text-zinc-600 dark:text-zinc-400">
+              Not set up yet. Workers get a notification when their schedule changes once these keys are in Vercel.
+            </p>
+            <PushKeys />
+          </>
+        )}
+      </section>
     </main>
   );
 }

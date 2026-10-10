@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { signOut } from "@/app/actions";
 import { snapshots } from "@/lib/offline/outbox";
+import { stopNotifications } from "./notifications";
 
-// Signing out clears this person's copy from the phone. It's blocked while
+// Signing out clears this person's copy from the phone and stops its
+// notifications. It's blocked while
 // forms are still waiting to send, since signing out would strand them.
 export function SignOutButton({ userId, waiting }: { userId: string; waiting: number }) {
   const [message, setMessage] = useState("");
@@ -27,6 +29,7 @@ export function SignOutButton({ userId, waiting }: { userId: string; waiting: nu
             );
           }
           if (!navigator.onLine) return setMessage("Signing out needs signal.");
+          await stopNotifications();
           await snapshots.clear(userId).catch(() => {});
           navigator.serviceWorker?.controller?.postMessage({ type: "clear-pages" });
           startTransition(() => signOut());

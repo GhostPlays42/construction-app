@@ -127,3 +127,38 @@ async function warm(paths) {
     } catch {}
   }
 }
+
+// App notifications, such as "Your schedule changed". Tapping one opens the
+// app (or brings it forward) at the page the notification names.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Construction App", {
+      body: data.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of open) {
+        if (new URL(client.url).origin === self.location.origin && "focus" in client) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});

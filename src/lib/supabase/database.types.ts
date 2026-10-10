@@ -105,6 +105,87 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"dispatch_equipment": {
+                  Row: {
+                    "company_id": string,"dispatch_id": string,"equipment_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"dispatch_id": string,"equipment_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"dispatch_id"?: string,"equipment_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dispatch_equipment_company_id_dispatch_id_fkey"
+      columns: ["company_id","dispatch_id"]
+isOneToOne: false
+      referencedRelation: "dispatches"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "dispatch_equipment_company_id_equipment_id_fkey"
+      columns: ["company_id","equipment_id"]
+isOneToOne: false
+      referencedRelation: "equipment"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"dispatch_people": {
+                  Row: {
+                    "company_id": string,"dispatch_id": string,"employee_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"dispatch_id": string,"employee_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"dispatch_id"?: string,"employee_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dispatch_people_company_id_dispatch_id_fkey"
+      columns: ["company_id","dispatch_id"]
+isOneToOne: false
+      referencedRelation: "dispatches"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "dispatch_people_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"dispatches": {
+                  Row: {
+                    "company_id": string,"id": string,"job_id": string,"notes": string | null,"start_time": string | null,"updated_at": string,"updated_by": string,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"id"?: string,"job_id": string,"notes"?: string | null,"start_time"?: string | null,"updated_at"?: string,"updated_by": string,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"id"?: string,"job_id"?: string,"notes"?: string | null,"start_time"?: string | null,"updated_at"?: string,"updated_by"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dispatches_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "dispatches_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "dispatches_company_id_updated_by_fkey"
+      columns: ["company_id","updated_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"employee_rates": {
                   Row: {
                     "company_id": string,"employee_id": string,"hourly_rate": number,"updated_at": string
@@ -413,6 +494,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"company_id": string,"created_at": string,"employee_id": string,"endpoint": string,"id": string,"p256dh": string
+                  }
+                  Insert: {
+                    "auth": string,"company_id": string,"created_at"?: string,"employee_id": string,"endpoint": string,"id"?: string,"p256dh": string
+                  }
+                  Update: {
+                    "auth"?: string,"company_id"?: string,"created_at"?: string,"employee_id"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"roles": {
                   Row: {
                     "created_at": string,"is_admin": boolean,"key": string,"name": string
@@ -504,6 +604,37 @@ isOneToOne: false
       columns: ["company_id","led_by"]
 isOneToOne: false
       referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"schedule_entries": {
+                  Row: {
+                    "company_id": string,"employee_id": string,"job_id": string,"notes": string | null,"sent_at": string,"start_time": string | null,"work_date": string
+                  }
+                  Insert: {
+                    "company_id": string,"employee_id": string,"job_id": string,"notes"?: string | null,"sent_at"?: string,"start_time"?: string | null,"work_date": string
+                  }
+                  Update: {
+                    "company_id"?: string,"employee_id"?: string,"job_id"?: string,"notes"?: string | null,"sent_at"?: string,"start_time"?: string | null,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "schedule_entries_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "schedule_entries_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "schedule_entries_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
       referencedColumns: ["company_id","id"]
     }
                   ]
@@ -751,6 +882,11 @@ isOneToOne: false
               "finalized_at": string,"has_pdf": boolean,"job_id": string,"job_name": string,"job_number": string,"report_id": string,"work_date": string
             }[]
                            },
+"dispatch_conflicts":
+{ Args: { "p_date": string,"p_equipment": (string)[],"p_job_id": string,"p_people": (string)[] }; Returns: {
+              "id": string,"kind": string,"name": string,"other_job": string
+            }[]
+                           },
 "finalize_daily_report":
 { Args: { "p_date": string,"p_job_id": string }; Returns: string
                            },
@@ -762,8 +898,20 @@ isOneToOne: false
               "employee_id": string,"full_name": string,"job_id": string
             }[]
                            },
+"remove_push_subscriptions":
+{ Args: { "p_endpoints": (string)[] }; Returns: undefined
+                           },
+"save_dispatch":
+{ Args: { "p_date": string,"p_equipment": (string)[],"p_job_id": string,"p_notes": string,"p_people": (string)[],"p_start_time": string }; Returns: undefined
+                           },
+"save_push_subscription":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string }; Returns: undefined
+                           },
 "save_trucking_slip_reading":
 { Args: { "p_id": string,"p_values": Json }; Returns: undefined
+                           },
+"send_schedule":
+{ Args: Record<PropertyKey, never>; Returns: string[]
                            },
 "set_daily_report_pdf":
 { Args: { "p_id": string }; Returns: undefined
@@ -788,6 +936,9 @@ isOneToOne: false
                            },
 "submit_trucking_slip":
 { Args: { "p_filled_at"?: string,"p_id": string,"p_job_id": string }; Returns: string
+                           },
+"unsent_schedule_people":
+{ Args: Record<PropertyKey, never>; Returns: string[]
                            },
 "update_time_card":
 { Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_id": string,"p_lines": Json,"p_start": string }; Returns: undefined

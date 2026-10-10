@@ -26,6 +26,9 @@ export type WorkerSnapshot = {
     status: "unchecked" | "checked";
     ticket_number: string | null;
   }[];
+  // Where the office has sent this worker, today and the next two weeks.
+  // Missing on older copies.
+  schedule?: ScheduleDay[];
   // Who is on each of the worker's active jobs, for the safety meeting sign-off.
   crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {
@@ -35,6 +38,16 @@ export type WorkerSnapshot = {
     // Active machines on the worker's jobs.
     equipment: { id: string; name: string; job_ids: string[] }[];
   };
+};
+
+export type ScheduleDay = {
+  work_date: string;
+  job_id: string;
+  job_name: string;
+  address: string | null;
+  // "07:00:00", or null when no start time was set.
+  start_time: string | null;
+  notes: string | null;
 };
 
 // A time card as the office has it.

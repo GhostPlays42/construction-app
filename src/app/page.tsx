@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions";
 import { needsAppCode } from "@/lib/auth";
 import { buildSnapshot } from "@/lib/offline/snapshot";
+import { pushPublicKey } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { WorkerHome } from "./home/worker-home";
 
@@ -77,7 +78,7 @@ export default async function Home() {
         </main>
       );
     }
-    return <WorkerHome initial={snapshot} />;
+    return <WorkerHome initial={snapshot} pushKey={pushPublicKey()} />;
   }
 
   return (
@@ -91,6 +92,12 @@ export default async function Home() {
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >
         Daily reports
+      </Link>
+      <Link
+        href="/admin/dispatch"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        Dispatch
       </Link>
       <Link
         href="/admin/people"
