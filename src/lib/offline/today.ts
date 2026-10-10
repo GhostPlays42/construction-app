@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { officeHas } from "./outbox";
 import { workedMinutes } from "./time-card-rules";
-import type { OutboxItem, TimeCardPayload, WorkerSnapshot } from "./types";
+import type { JobFormCopy, OutboxItem, TimeCardPayload, WorkerSnapshot } from "./types";
 
 type Job = WorkerSnapshot["jobs"][number];
 
@@ -199,4 +199,39 @@ export function slipsToday(snapshot: WorkerSnapshot, outbox: OutboxItem[], jobId
   );
   for (const i of mine) if (i.status === "sent") sentIds.add(i.id);
   return { sent: sentIds.size, waiting: mine.filter((i) => i.status === "waiting").length };
+}
+
+export type JobFormView = JobFormCopy & {
+  // Once-a-day forms: who sent today's, and when (sent, or waiting on this phone).
+  done: { by: string; filledAt: string; waiting: boolean } | null;
+  // Any-time forms: how many this worker sent today, and how many are waiting.
+  sent: number;
+  waiting: number;
+};
+
+// The office's forms on a job, with what's been sent on each today.
+export function jobFormsToday(snapshot: WorkerSnapshot, outbox: OutboxItem[], jobId: string, today: string): JobFormView[] {
+  const me = snapshot.crews.find((c) => c.employee_id === snapshot.employeeId)?.full_name ?? snapshot.firstName;
+  return (snapshot.forms ?? [])
+    .filter((f) => f.job_id === jobId)
+    .map((f) => {
+      const sentToday = (snapshot.formSubmissions ?? []).filter(
+        (s) => s.form_id === f.form_id && s.job_id === jobId && s.work_date === today,
+      );
+      const mine = outbox.filter(
+        (i) => i.kind === "job-form" && i.payload.formId === f.form_id && i.payload.jobId === jobId && i.payload.workDate === today,
+      );
+      const ids = new Set(sentToday.filter((s) => s.mine).map((s) => s.id));
+      for (const i of mine) if (i.status === "sent") ids.add(i.id);
+      const waiting = mine.filter((i) => i.status === "waiting");
+
+      let done: JobFormView["done"] = null;
+      if (f.frequency === "once_daily") {
+        const office = sentToday[0];
+        const phone = mine.find((i) => i.status === "sent") ?? waiting[0];
+        if (office) done = { by: office.sent_by, filledAt: office.filled_at, waiting: false };
+        else if (phone) done = { by: me, filledAt: phone.payload.filledAt, waiting: phone.status === "waiting" };
+      }
+      return { ...f, done, sent: ids.size, waiting: waiting.length };
+    });
 }

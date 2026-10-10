@@ -1,3 +1,5 @@
+import type { Answer } from "@/lib/forms";
+
 // A job's daily report, as public.daily_report_content builds it. Times are
 // minutes; clock times are "HH:MM" in the company's time zone.
 export type ReportContent = {
@@ -50,6 +52,16 @@ export type ReportContent = {
     filled_at: string;
     notes: string | null;
     photos: { path: string; code: string | null; code_name: string | null; caption: string | null }[];
+  }[];
+  // Forms put in the daily report. Missing on reports finalized before forms existed.
+  forms?: {
+    name: string;
+    entries: {
+      sent_by: string;
+      filled_at: string;
+      // Each question of the version answered, in order.
+      answers: { label: string; type: string; value: Answer | null }[];
+    }[];
   }[];
   missing: string[];
 };

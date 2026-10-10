@@ -1,11 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, todayISO } from "@/lib/dates";
+import type { Question } from "@/lib/forms";
 import type { Database } from "@/lib/supabase/database.types";
 import type { WorkerSnapshot } from "./types";
 
 // Everything a worker's screens need, in one go. Row level security limits
-// jobs (and their machines, crews and safety meetings) to the ones they're
-// assigned to, and FLHAs, time cards, site photos and slips to their own. Returns null
+// jobs (and their machines, crews, safety meetings and forms) to the ones
+// they're assigned to, and FLHAs, time cards, site photos, slips and sent
+// forms to their own. Returns null
 // when the person has no access.
 export async function buildSnapshot(
   supabase: SupabaseClient<Database>,
@@ -20,7 +22,7 @@ export async function buildSnapshot(
 
   const since = addDays(todayISO(), -1);
   const today = todayISO();
-  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries, slips, schedule, unread] = await Promise.all([
+  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries, slips, schedule, unread, forms, sentForms] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -67,6 +69,8 @@ export async function buildSnapshot(
       .order("work_date")
       .order("start_time", { nullsFirst: false }),
     supabase.rpc("chat_unread"),
+    supabase.rpc("my_job_forms"),
+    supabase.rpc("my_form_submissions", { p_since: since }),
   ]);
   const failed =
     jobs.error ??
@@ -81,7 +85,9 @@ export async function buildSnapshot(
     entries.error ??
     slips.error ??
     schedule.error ??
-    unread.error;
+    unread.error ??
+    forms.error ??
+    sentForms.error;
   if (failed) throw new Error(failed.message);
 
   const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
@@ -119,6 +125,12 @@ export async function buildSnapshot(
     })),
     crews: crews.data ?? [],
     chatUnread: unread.data ?? [],
+    forms: (forms.data ?? []).map((f) => ({
+      ...f,
+      frequency: f.frequency === "once_daily" ? "once_daily" : "many",
+      questions: f.questions as Question[],
+    })),
+    formSubmissions: sentForms.data ?? [],
     schedule: (schedule.data ?? []).map(({ jobs, ...s }) => ({
       ...s,
       job_name: jobs?.name ?? "A job",

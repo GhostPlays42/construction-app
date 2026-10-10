@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { photoPaths } from "@/app/admin/forms/answer-value";
 import { requireAdmin } from "@/lib/admin";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import type { ReportContent } from "@/lib/daily-report";
@@ -40,16 +41,18 @@ export default async function ReportPage({ params }: { params: Promise<{ jobId: 
   // Viewable links for every photo in the report.
   const sitePaths = report.site_entries.flatMap((e) => e.photos.map((p) => p.path));
   const slipPaths = report.trucking.map((s) => s.photo_path);
-  const [siteLinks, slipLinks, pdfLink] = await Promise.all([
+  const formPaths = (report.forms ?? []).flatMap((f) => f.entries.flatMap((e) => photoPaths(e.answers)));
+  const [siteLinks, slipLinks, formLinks, pdfLink] = await Promise.all([
     sitePaths.length ? supabase.storage.from("site-photos").createSignedUrls(sitePaths, LINK_SECONDS) : null,
     slipPaths.length ? supabase.storage.from("slip-photos").createSignedUrls(slipPaths, LINK_SECONDS) : null,
+    formPaths.length ? supabase.storage.from("form-photos").createSignedUrls(formPaths, LINK_SECONDS) : null,
     saved?.pdf_path
       ? supabase.storage.from("daily-reports").createSignedUrl(saved.pdf_path, LINK_SECONDS, {
           download: `Daily report ${report.job.name} ${date}.pdf`.replace(/[^\w .-]/g, ""),
         })
       : null,
   ]);
-  const links = [...(siteLinks?.data ?? []), ...(slipLinks?.data ?? [])];
+  const links = [...(siteLinks?.data ?? []), ...(slipLinks?.data ?? []), ...(formLinks?.data ?? [])];
   const photoUrl = (path: string) => links.find((l) => l.path === path)?.signedUrl ?? null;
 
   const muted = "text-zinc-600 dark:text-zinc-400";

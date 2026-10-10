@@ -436,6 +436,118 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"form_jobs": {
+                  Row: {
+                    "company_id": string,"form_id": string,"job_id": string
+                  }
+                  Insert: {
+                    "company_id": string,"form_id": string,"job_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"form_id"?: string,"job_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "form_jobs_company_id_form_id_fkey"
+      columns: ["company_id","form_id"]
+isOneToOne: false
+      referencedRelation: "forms"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "form_jobs_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"form_submissions": {
+                  Row: {
+                    "answers": NonNullable<Json>,"company_id": string,"employee_id": string,"filled_at": string,"form_id": string,"form_name": string,"id": string,"job_id": string,"once_on": string | null,"submitted_at": string,"version_id": string,"work_date": string
+                  }
+                  Insert: {
+                    "answers": NonNullable<Json>,"company_id": string,"employee_id": string,"filled_at": string,"form_id": string,"form_name": string,"id": string,"job_id": string,"once_on"?: string | null,"submitted_at"?: string,"version_id": string,"work_date": string
+                  }
+                  Update: {
+                    "answers"?: NonNullable<Json>,"company_id"?: string,"employee_id"?: string,"filled_at"?: string,"form_id"?: string,"form_name"?: string,"id"?: string,"job_id"?: string,"once_on"?: string | null,"submitted_at"?: string,"version_id"?: string,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "form_submissions_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "form_submissions_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "form_submissions_company_id_form_id_fkey"
+      columns: ["company_id","form_id"]
+isOneToOne: false
+      referencedRelation: "forms"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "form_submissions_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "form_submissions_company_id_version_id_fkey"
+      columns: ["company_id","version_id"]
+isOneToOne: false
+      referencedRelation: "form_versions"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"form_versions": {
+                  Row: {
+                    "company_id": string,"created_at": string,"created_by": string | null,"form_id": string,"id": string,"questions": NonNullable<Json>,"version": number
+                  }
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"created_by"?: string | null,"form_id": string,"id"?: string,"questions": NonNullable<Json>,"version": number
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"created_by"?: string | null,"form_id"?: string,"id"?: string,"questions"?: NonNullable<Json>,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "form_versions_company_id_created_by_fkey"
+      columns: ["company_id","created_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "form_versions_company_id_form_id_fkey"
+      columns: ["company_id","form_id"]
+isOneToOne: false
+      referencedRelation: "forms"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"forms": {
+                  Row: {
+                    "all_jobs": boolean,"company_id": string,"created_at": string,"frequency": string,"id": string,"in_daily_report": boolean,"is_active": boolean,"name": string
+                  }
+                  Insert: {
+                    "all_jobs"?: boolean,"company_id": string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name": string
+                  }
+                  Update: {
+                    "all_jobs"?: boolean,"company_id"?: string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "forms_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"hazards": {
                   Row: {
                     "company_id": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"sort_order": number,"updated_at": string
@@ -968,9 +1080,19 @@ isOneToOne: false
 "mark_chat_read":
 { Args: { "p_job_id": string }; Returns: undefined
                            },
+"my_form_submissions":
+{ Args: { "p_since": string }; Returns: {
+              "filled_at": string,"form_id": string,"id": string,"job_id": string,"mine": boolean,"sent_by": string,"work_date": string
+            }[]
+                           },
 "my_job_crews":
 { Args: Record<PropertyKey, never>; Returns: {
               "employee_id": string,"full_name": string,"job_id": string
+            }[]
+                           },
+"my_job_forms":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "form_id": string,"frequency": string,"job_id": string,"name": string,"questions": Json,"version_id": string
             }[]
                            },
 "remove_chat_message":
@@ -981,6 +1103,9 @@ isOneToOne: false
                            },
 "save_dispatch":
 { Args: { "p_date": string,"p_equipment": (string)[],"p_job_id": string,"p_notes": string,"p_people": (string)[],"p_start_time": string }; Returns: undefined
+                           },
+"save_form":
+{ Args: { "p_all_jobs": boolean,"p_frequency": string,"p_id": string,"p_in_daily_report": boolean,"p_job_ids": (string)[],"p_name": string,"p_questions": Json }; Returns: string
                            },
 "save_push_subscription":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string }; Returns: undefined
@@ -997,6 +1122,9 @@ isOneToOne: false
 "set_daily_report_pdf":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"set_form_active":
+{ Args: { "p_active": boolean,"p_id": string }; Returns: undefined
+                           },
 "set_job_crew":
 { Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined
                            },
@@ -1005,6 +1133,9 @@ isOneToOne: false
                            },
 "submit_flha":
 { Args: { "p_cost_code_ids": (string)[],"p_filled_at"?: string,"p_hazards": Json,"p_id": string,"p_job_id": string,"p_other_control": string,"p_other_hazard": string,"p_ppe_ids": (string)[],"p_signature": string }; Returns: string
+                           },
+"submit_form":
+{ Args: { "p_answers": Json,"p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_version_id": string }; Returns: string
                            },
 "submit_safety_meeting":
 { Args: { "p_attendees": Json,"p_filled_at"?: string,"p_hazard_ids": (string)[],"p_id": string,"p_job_id": string,"p_other_hazard": string,"p_topic": string }; Returns: string

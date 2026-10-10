@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { formPhotoPath } from "./form-rules";
 import { photoPath } from "./site-photo-rules";
 import { slipPhotoPath } from "./slip-rules";
 import { kv, outboxStore } from "./store";
@@ -44,6 +45,7 @@ export function officeHas(snapshot: WorkerSnapshot, item: OutboxItem): boolean {
   if (item.kind === "safety-meeting") return snapshot.safetyMeetings.some((m) => m.id === item.id);
   if (item.kind === "site-photos") return (snapshot.siteEntries ?? []).some((e) => e.id === item.id);
   if (item.kind === "trucking-slip") return (snapshot.truckingSlips ?? []).some((s) => s.id === item.id);
+  if (item.kind === "job-form") return (snapshot.formSubmissions ?? []).some((s) => s.id === item.id);
   return snapshot.timeCards.some(
     (c) => c.id === item.id && Date.parse(c.filled_at) >= Date.parse(item.payload.filledAt),
   );
@@ -72,7 +74,7 @@ export function sendWaiting(userId: string): Promise<SendResult> {
       for (const item of await outboxFor(userId)) {
         if (item.status !== "waiting") continue;
         let body: unknown = { id: item.id, employeeId: item.employeeId, ...item.payload };
-        if (item.kind === "site-photos" || item.kind === "trucking-slip") {
+        if (item.kind === "site-photos" || item.kind === "trucking-slip" || item.kind === "job-form") {
           // Photos go straight to storage first; the form then says which they are.
           const uploaded = await uploadPhotos(item);
           if (uploaded === "refused") {
@@ -86,7 +88,16 @@ export function sendWaiting(userId: string): Promise<SendResult> {
                   ...(body as object),
                   photos: item.payload.photos.map((p) => ({ id: p.id, cost_code_id: p.costCodeId, caption: p.caption })),
                 }
-              : { id: item.id, employeeId: item.employeeId, jobId: item.payload.jobId, filledAt: item.payload.filledAt };
+              : item.kind === "job-form"
+                ? {
+                    id: item.id,
+                    employeeId: item.employeeId,
+                    jobId: item.payload.jobId,
+                    versionId: item.payload.versionId,
+                    filledAt: item.payload.filledAt,
+                    answers: item.payload.answers,
+                  }
+                : { id: item.id, employeeId: item.employeeId, jobId: item.payload.jobId, filledAt: item.payload.filledAt };
         }
         let res: Response;
         try {
@@ -121,9 +132,18 @@ export function sendWaiting(userId: string): Promise<SendResult> {
 }
 
 // Where each photo on a form goes in storage.
-function photosOf(item: Extract<OutboxItem, { kind: "site-photos" | "trucking-slip" }>) {
+type WithPhotos = Extract<OutboxItem, { kind: "site-photos" | "trucking-slip" | "job-form" }>;
+
+function photosOf(item: WithPhotos) {
   if (item.kind === "trucking-slip") {
     return [{ bucket: "slip-photos", path: slipPhotoPath(item.payload.companyId, item.id), photo: item.payload.photo }];
+  }
+  if (item.kind === "job-form") {
+    return item.payload.photos.map((photo) => ({
+      bucket: "form-photos",
+      path: formPhotoPath(item.payload.companyId, item.id, photo.id),
+      photo,
+    }));
   }
   return item.payload.photos.map((photo) => ({
     bucket: "site-photos",
@@ -135,9 +155,7 @@ function photosOf(item: Extract<OutboxItem, { kind: "site-photos" | "trucking-sl
 // Uploads a form's photos that haven't reached storage yet, marking each one
 // on the phone as it goes, so a lost signal part way through only resends
 // the rest.
-async function uploadPhotos(
-  item: Extract<OutboxItem, { kind: "site-photos" | "trucking-slip" }>,
-): Promise<"sent" | "offline" | "signed_out" | "refused"> {
+async function uploadPhotos(item: WithPhotos): Promise<"sent" | "offline" | "signed_out" | "refused"> {
   const supabase = createClient();
   const { data } = await supabase.auth.getSession();
   if (!data.session) return "signed_out";
