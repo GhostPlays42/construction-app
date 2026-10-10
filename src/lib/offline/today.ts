@@ -175,3 +175,16 @@ export function sitePhotosToday(snapshot: WorkerSnapshot, outbox: OutboxItem[], 
     failed: mine.filter((i) => i.status === "failed").length,
   };
 }
+
+// How many trucking slips this worker has sent for a job today, and how many
+// are saved on the phone waiting to send.
+export function slipsToday(snapshot: WorkerSnapshot, outbox: OutboxItem[], jobId: string, today: string) {
+  const sentIds = new Set(
+    (snapshot.truckingSlips ?? []).filter((s) => s.job_id === jobId && s.work_date === today).map((s) => s.id),
+  );
+  const mine = outbox.filter(
+    (i) => i.kind === "trucking-slip" && i.payload.jobId === jobId && i.payload.workDate === today,
+  );
+  for (const i of mine) if (i.status === "sent") sentIds.add(i.id);
+  return { sent: sentIds.size, waiting: mine.filter((i) => i.status === "waiting").length };
+}

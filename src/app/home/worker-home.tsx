@@ -1,17 +1,23 @@
 "use client";
 
+// Links here are plain <a> page loads, not client-side navigation, so the
+// phone's copy of each screen opens when there's no signal.
+/* eslint-disable @next/next/no-html-link-for-pages */
+
 import { formatDate, formatDateTime, formatTime, todayISO } from "@/lib/dates";
 import { mapLink } from "@/lib/maps";
 import { flhaMessage } from "@/lib/offline/flha-rules";
 import { removeFromOutbox } from "@/lib/offline/outbox";
 import { safetyMessage } from "@/lib/offline/safety-rules";
 import { sitePhotoMessage } from "@/lib/offline/site-photo-rules";
+import { slipMessage } from "@/lib/offline/slip-rules";
 import { hoursText, timeCardMessage } from "@/lib/offline/time-card-rules";
 import {
   flhaStatus,
   safetyStatus,
   savePick,
   sitePhotosToday,
+  slipsToday,
   timeCardFor,
   todaysJob,
   usePick,
@@ -25,16 +31,15 @@ const FORM_NAMES: Record<OutboxItem["kind"], string> = {
   "time-card": "time card",
   "safety-meeting": "safety meeting",
   "site-photos": "site photos & notes",
+  "trucking-slip": "trucking slip",
 };
 const MESSAGES: Record<OutboxItem["kind"], (code: string) => string> = {
   flha: flhaMessage,
   "time-card": timeCardMessage,
   "safety-meeting": safetyMessage,
   "site-photos": sitePhotoMessage,
+  "trucking-slip": slipMessage,
 };
-
-// Forms still being built. They'll unlock once the FLHA is done, like the time card.
-const COMING = ["Trucking slip"];
 
 const card = "flex flex-col gap-1 rounded-xl border-2 border-zinc-200 p-4 dark:border-zinc-800";
 
@@ -52,6 +57,10 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
   const meeting = job ? safetyStatus(snapshot, outbox, job.id, today) : null;
   const photos = job ? sitePhotosToday(snapshot, outbox, job.id, today) : null;
   const photosDone = photos ? photos.sent + photos.waiting : 0;
+  const slips = job ? slipsToday(snapshot, outbox, job.id, today) : null;
+  const slipsDone = slips ? slips.sent + slips.waiting : 0;
+  // Slips that reached the office and still need the worker to check them.
+  const toCheck = (snapshot.truckingSlips ?? []).filter((s) => s.status === "unchecked");
   const waiting = outbox.filter((i) => i.status === "waiting");
   const failed = outbox.filter((i) => i.status === "failed");
 
@@ -119,6 +128,22 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
           ))}
         </section>
       )}
+
+      {toCheck.map((s) => (
+        <a
+          key={s.id}
+          href={`/trucking-slip/${s.id}`}
+          className="flex items-center justify-between gap-3 rounded-xl bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <span className="text-lg font-semibold">
+            Check your trucking slip
+            <span className="block text-base font-normal">
+              {s.ticket_number ? `Ticket ${s.ticket_number} · ` : ""}Taken {formatTime(s.filled_at)}
+            </span>
+          </span>
+          <span aria-hidden>→</span>
+        </a>
+      ))}
 
       {jobs.length === 0 ? (
         <div className={card}>
@@ -290,9 +315,30 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
                 </span>
               </a>
             )}
-            {COMING.map((name) => (
-              <Locked key={name} name={name} note={flhaDone ? "Coming soon" : undefined} />
-            ))}
+            {!flhaDone ? (
+              <Locked name="Trucking slip" />
+            ) : (
+              <a
+                href="/trucking-slip"
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
+                  slipsDone
+                    ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
+                    : "border-2 border-amber-500 active:bg-amber-50 dark:active:bg-amber-950"
+                }`}
+              >
+                <span>
+                  Trucking slip
+                  {slipsDone > 0 && (
+                    <span className="block text-base font-normal">
+                      {slips?.waiting ? "Waiting to send · " : ""}Tap to add another
+                    </span>
+                  )}
+                </span>
+                <span className="text-lg font-normal">
+                  {slipsDone > 0 ? `✓ ${slipsDone} today` : <span aria-hidden>→</span>}
+                </span>
+              </a>
+            )}
           </section>
         </>
       )}
@@ -302,7 +348,7 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
   );
 }
 
-function Locked({ name, note }: { name: string; note?: string }) {
+function Locked({ name }: { name: string }) {
   return (
     <button
       type="button"
@@ -310,7 +356,9 @@ function Locked({ name, note }: { name: string; note?: string }) {
       className="flex w-full items-center justify-between rounded-xl border-2 border-zinc-200 px-4 py-4 text-xl text-zinc-500 dark:border-zinc-800"
     >
       <span>{name}</span>
-      <span className="text-base">{note ?? <span aria-hidden>🔒</span>}</span>
+      <span className="text-base">
+        <span aria-hidden>🔒</span>
+      </span>
     </button>
   );
 }

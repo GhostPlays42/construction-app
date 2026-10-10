@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { photoPath } from "./site-photo-rules";
+import { slipPhotoPath } from "./slip-rules";
 import { kv, outboxStore } from "./store";
 import type { OutboxItem, WorkerSnapshot } from "./types";
 
@@ -42,6 +43,7 @@ export function officeHas(snapshot: WorkerSnapshot, item: OutboxItem): boolean {
   if (item.kind === "flha") return snapshot.flhas.some((f) => f.id === item.id);
   if (item.kind === "safety-meeting") return snapshot.safetyMeetings.some((m) => m.id === item.id);
   if (item.kind === "site-photos") return (snapshot.siteEntries ?? []).some((e) => e.id === item.id);
+  if (item.kind === "trucking-slip") return (snapshot.truckingSlips ?? []).some((s) => s.id === item.id);
   return snapshot.timeCards.some(
     (c) => c.id === item.id && Date.parse(c.filled_at) >= Date.parse(item.payload.filledAt),
   );
@@ -70,7 +72,7 @@ export function sendWaiting(userId: string): Promise<SendResult> {
       for (const item of await outboxFor(userId)) {
         if (item.status !== "waiting") continue;
         let body: unknown = { id: item.id, employeeId: item.employeeId, ...item.payload };
-        if (item.kind === "site-photos") {
+        if (item.kind === "site-photos" || item.kind === "trucking-slip") {
           // Photos go straight to storage first; the form then says which they are.
           const uploaded = await uploadPhotos(item);
           if (uploaded === "refused") {
@@ -78,10 +80,13 @@ export function sendWaiting(userId: string): Promise<SendResult> {
             continue;
           }
           if (uploaded !== "sent") return uploaded;
-          body = {
-            ...(body as object),
-            photos: item.payload.photos.map((p) => ({ id: p.id, cost_code_id: p.costCodeId, caption: p.caption })),
-          };
+          body =
+            item.kind === "site-photos"
+              ? {
+                  ...(body as object),
+                  photos: item.payload.photos.map((p) => ({ id: p.id, cost_code_id: p.costCodeId, caption: p.caption })),
+                }
+              : { id: item.id, employeeId: item.employeeId, jobId: item.payload.jobId, filledAt: item.payload.filledAt };
         }
         let res: Response;
         try {
@@ -115,24 +120,34 @@ export function sendWaiting(userId: string): Promise<SendResult> {
   return sending;
 }
 
-// Uploads a site photos form's photos that haven't reached storage yet,
-// marking each one on the phone as it goes, so a lost signal part way
-// through only resends the rest.
+// Where each photo on a form goes in storage.
+function photosOf(item: Extract<OutboxItem, { kind: "site-photos" | "trucking-slip" }>) {
+  if (item.kind === "trucking-slip") {
+    return [{ bucket: "slip-photos", path: slipPhotoPath(item.payload.companyId, item.id), photo: item.payload.photo }];
+  }
+  return item.payload.photos.map((photo) => ({
+    bucket: "site-photos",
+    path: photoPath(item.payload.companyId, item.id, photo.id),
+    photo,
+  }));
+}
+
+// Uploads a form's photos that haven't reached storage yet, marking each one
+// on the phone as it goes, so a lost signal part way through only resends
+// the rest.
 async function uploadPhotos(
-  item: Extract<OutboxItem, { kind: "site-photos" }>,
+  item: Extract<OutboxItem, { kind: "site-photos" | "trucking-slip" }>,
 ): Promise<"sent" | "offline" | "signed_out" | "refused"> {
   const supabase = createClient();
   const { data } = await supabase.auth.getSession();
   if (!data.session) return "signed_out";
   if (data.session.user.id !== item.userId) return "offline";
-  const bucket = supabase.storage.from("site-photos");
-  for (const photo of item.payload.photos) {
+  for (const { bucket, path, photo } of photosOf(item)) {
     if (photo.uploaded) continue;
-    const path = photoPath(item.payload.companyId, item.id, photo.id);
     let error: { message: string; statusCode?: string; status?: number } | null;
     try {
       ({ error } = await Promise.race([
-        bucket.upload(path, photo.blob, { contentType: "image/jpeg", upsert: false }),
+        supabase.storage.from(bucket).upload(path, photo.blob, { contentType: "image/jpeg", upsert: false }),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), PHOTO_TIMEOUT_MS)),
       ]));
     } catch {
