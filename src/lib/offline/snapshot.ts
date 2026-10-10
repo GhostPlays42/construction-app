@@ -15,7 +15,7 @@ export async function buildSnapshot(
 ): Promise<WorkerSnapshot | null> {
   const { data: me } = await supabase
     .from("employees")
-    .select("id, company_id, full_name, companies(name)")
+    .select("id, company_id, full_name, companies(name), roles(is_supervisor)")
     .eq("user_id", userId)
     .maybeSingle();
   if (!me) return null;
@@ -104,6 +104,7 @@ export async function buildSnapshot(
     userId,
     employeeId: me.id,
     firstName: me.full_name.split(" ")[0],
+    isSupervisor: me.roles?.is_supervisor === true,
     companyName: me.companies?.name ?? "",
     companyId: me.company_id,
     fetchedAt: new Date().toISOString(),

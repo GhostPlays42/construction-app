@@ -9,7 +9,7 @@ export const SAFETY_MESSAGES: Record<string, string> = {
   crew_required: "Mark who was at the meeting: each person signs, or tap their name.",
   crew_changed: "The crew on this job changed while this was waiting. Check with your office.",
   signature_too_big: "A signature is too long. Clear it and sign again.",
-  flha_required: "Do your FLHA for this job first.",
+  supervisors_only: "Only a supervisor can send the safety meeting. Check with your office.",
   already_done: "Someone already sent today's safety meeting for this job.",
   job_not_available: "You're no longer on this job. Check with your office.",
   item_not_available: "The office changed the hazards list while this was waiting. Check with your office.",

@@ -1,11 +1,12 @@
 -- Form builder: only the office makes and changes forms; changing the
 -- questions makes a new version and answers keep theirs. Workers see the
 -- forms on their jobs, send answers once (however often a phone retries),
--- only after their FLHA, and once a day for once-a-day forms. Answers are
+-- only after their FLHA, and once a day for once-a-day forms. Supervisor-only
+-- forms are for supervisors alone. Answers are
 -- checked against the questions. Report forms show in the daily report.
 -- Nothing crosses companies.
 begin;
-select plan(45);
+select plan(52);
 
 insert into public.companies (id, name) values
   ('10000000-0000-0000-0000-00000000000a', 'Company A'),
@@ -226,6 +227,36 @@ select lives_ok($$select public.set_form_active((select id from ids where name =
 select pg_temp.login('00000000-0000-0000-0000-0000000000a2', 'aal1');
 select is((select count(*)::integer from public.my_job_forms() where name = 'Daily inspection'), 0,
   '... takes it off workers'' phones');
+
+-- A supervisors-only form --------------------------------------------------------
+select pg_temp.login('00000000-0000-0000-0000-0000000000a1', 'aal2');
+insert into ids select 'signout', public.save_form(null, 'Crew sign-out', 'many', false, true, null,
+  '[{"id": "e0000000-0000-0000-0000-000000000001", "type": "short", "label": "Who left early?"}]', true);
+select is((select supervisors_only from public.forms where id = (select id from ids where name = 'signout')), true,
+  'the office makes a supervisors-only form');
+insert into ids select 'signout_v', id from public.form_versions where form_id = (select id from ids where name = 'signout');
+
+select pg_temp.login('00000000-0000-0000-0000-0000000000a2', 'aal1');
+select is((select count(*)::integer from public.my_job_forms() where name = 'Crew sign-out'), 0,
+  'it isn''t on a worker''s phone');
+select throws_ok($$select public.submit_form('50000000-0000-0000-0000-000000000005', (select id from ids where name = 'signout_v'),
+  '30000000-0000-0000-0000-0000000000a1', '{}')$$, 'P0001', 'form_not_available', '... and a worker can''t send it');
+
+select pg_temp.login('00000000-0000-0000-0000-0000000000a1', 'aal2');
+update public.employees set role_key = 'supervisor' where id = '20000000-0000-0000-0000-0000000000a2';
+
+select pg_temp.login('00000000-0000-0000-0000-0000000000a2', 'aal1');
+select is((select count(*)::integer from public.my_job_forms() where name = 'Crew sign-out'), 2,
+  'once Joe is a supervisor he gets it on both his jobs');
+select lives_ok($$select public.submit_form('50000000-0000-0000-0000-000000000005', (select id from ids where name = 'signout_v'),
+  '30000000-0000-0000-0000-0000000000a1', '{}')$$, '... and can send it');
+
+select pg_temp.login('00000000-0000-0000-0000-0000000000a1', 'aal2');
+select lives_ok($$select public.save_form((select id from ids where name = 'signout'), 'Crew sign-out', 'many', false, true, null,
+  '[{"id": "e0000000-0000-0000-0000-000000000001", "type": "short", "label": "Who left early?"}]')$$,
+  'saving without the setting');
+select is((select supervisors_only from public.forms where id = (select id from ids where name = 'signout')), false,
+  '... opens it to everyone');
 
 -- Admin B ---------------------------------------------------------------------------
 select pg_temp.login('00000000-0000-0000-0000-0000000000b1', 'aal2');

@@ -219,6 +219,30 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
             )}
           </section>
 
+          {snapshot.isSupervisor &&
+            (meeting?.state === "sent" || meeting?.state === "waiting" ? (
+              <div
+                role="status"
+                className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-4 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
+              >
+                <span>
+                  Safety meeting done
+                  <span className="block text-base font-normal">
+                    {meeting.state === "waiting" ? "Waiting to send" : `Run by ${meeting.ledBy}`}
+                  </span>
+                </span>
+                <span className="text-lg font-normal">✓ {formatTime(meeting.filledAt)}</span>
+              </div>
+            ) : (
+              <a
+                href="/safety-meeting"
+                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
+              >
+                <span>Safety meeting</span>
+                <span aria-hidden>→</span>
+              </a>
+            ))}
+
           {flhaDone ? (
             <div
               role="status"
@@ -248,66 +272,46 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
             {!flhaDone && (
               <p className="-mt-2 text-base text-zinc-600 dark:text-zinc-400">These unlock once your FLHA is done.</p>
             )}
-            {!flhaDone ? (
-              <Locked name="Safety meeting" />
-            ) : meeting?.state === "sent" || meeting?.state === "waiting" ? (
-              <div
-                role="status"
-                className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-4 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
-              >
-                <span>
-                  Safety meeting done
-                  <span className="block text-base font-normal">
-                    {meeting.state === "waiting" ? "Waiting to send" : `Run by ${meeting.ledBy}`}
+            {jobForms.map((f) =>
+              !flhaDone ? (
+                <Locked key={f.form_id} name={f.name} />
+              ) : f.done ? (
+                <div
+                  key={f.form_id}
+                  role="status"
+                  className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-4 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
+                >
+                  <span>
+                    {f.name} done
+                    <span className="block text-base font-normal">
+                      {f.done.waiting ? "Waiting to send" : `Sent by ${f.done.by}`}
+                    </span>
                   </span>
-                </span>
-                <span className="text-lg font-normal">✓ {formatTime(meeting.filledAt)}</span>
-              </div>
-            ) : (
-              <a
-                href="/safety-meeting"
-                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
-              >
-                <span>Safety meeting</span>
-                <span aria-hidden>→</span>
-              </a>
-            )}
-            {!flhaDone ? (
-              <Locked name="Time card" />
-            ) : timeCard ? (
-              <a
-                href="/time-card"
-                className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
-                  timeCard.state === "failed"
-                    ? "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100"
-                    : "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
-                }`}
-              >
-                <span>
-                  Time card {timeCard.state === "approved" ? "approved" : timeCard.state === "failed" ? "not sent" : "done"}
-                  <span className="block text-base font-normal">
-                    {timeCard.state === "waiting"
-                      ? "Waiting to send"
-                      : timeCard.state === "failed"
-                        ? "Tap to fix and send again"
-                        : timeCard.state === "approved"
-                          ? "Tap to see it"
-                          : "Tap to see or change it"}
+                  <span className="text-lg font-normal">✓ {formatTime(f.done.filledAt)}</span>
+                </div>
+              ) : (
+                <a
+                  key={f.form_id}
+                  href={`/job-form#${f.form_id}`}
+                  className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
+                    f.sent + f.waiting > 0
+                      ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
+                      : "border-2 border-amber-500 active:bg-amber-50 dark:active:bg-amber-950"
+                  }`}
+                >
+                  <span>
+                    {f.name}
+                    {f.sent + f.waiting > 0 && (
+                      <span className="block text-base font-normal">
+                        {f.waiting ? "Waiting to send · " : ""}Tap to send another
+                      </span>
+                    )}
                   </span>
-                </span>
-                <span className="text-lg font-normal">
-                  {timeCard.state === "failed" ? "" : "✓ "}
-                  {hoursText(timeCard.workedMinutes)}
-                </span>
-              </a>
-            ) : (
-              <a
-                href="/time-card"
-                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
-              >
-                <span>Time card</span>
-                <span aria-hidden>→</span>
-              </a>
+                  <span className="text-lg font-normal">
+                    {f.sent + f.waiting > 0 ? `✓ ${f.sent + f.waiting} today` : <span aria-hidden>→</span>}
+                  </span>
+                </a>
+              ),
             )}
             {!flhaDone ? (
               <Locked name="Site photos & notes" />
@@ -357,46 +361,42 @@ export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; push
                 </span>
               </a>
             )}
-            {jobForms.map((f) =>
-              !flhaDone ? (
-                <Locked key={f.form_id} name={f.name} />
-              ) : f.done ? (
-                <div
-                  key={f.form_id}
-                  role="status"
-                  className="flex items-center justify-between rounded-xl bg-green-100 px-4 py-4 text-xl font-semibold text-green-900 dark:bg-green-950 dark:text-green-100"
-                >
-                  <span>
-                    {f.name} done
-                    <span className="block text-base font-normal">
-                      {f.done.waiting ? "Waiting to send" : `Sent by ${f.done.by}`}
-                    </span>
+            {!flhaDone ? (
+              <Locked name="Time card" />
+            ) : timeCard ? (
+              <a
+                href="/time-card"
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
+                  timeCard.state === "failed"
+                    ? "bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100"
+                    : "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
+                }`}
+              >
+                <span>
+                  Time card {timeCard.state === "approved" ? "approved" : timeCard.state === "failed" ? "not sent" : "done"}
+                  <span className="block text-base font-normal">
+                    {timeCard.state === "waiting"
+                      ? "Waiting to send"
+                      : timeCard.state === "failed"
+                        ? "Tap to fix and send again"
+                        : timeCard.state === "approved"
+                          ? "Tap to see it"
+                          : "Tap to see or change it"}
                   </span>
-                  <span className="text-lg font-normal">✓ {formatTime(f.done.filledAt)}</span>
-                </div>
-              ) : (
-                <a
-                  key={f.form_id}
-                  href={`/job-form#${f.form_id}`}
-                  className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-xl font-semibold ${
-                    f.sent + f.waiting > 0
-                      ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100"
-                      : "border-2 border-amber-500 active:bg-amber-50 dark:active:bg-amber-950"
-                  }`}
-                >
-                  <span>
-                    {f.name}
-                    {f.sent + f.waiting > 0 && (
-                      <span className="block text-base font-normal">
-                        {f.waiting ? "Waiting to send · " : ""}Tap to send another
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-lg font-normal">
-                    {f.sent + f.waiting > 0 ? `✓ ${f.sent + f.waiting} today` : <span aria-hidden>→</span>}
-                  </span>
-                </a>
-              ),
+                </span>
+                <span className="text-lg font-normal">
+                  {timeCard.state === "failed" ? "" : "✓ "}
+                  {hoursText(timeCard.workedMinutes)}
+                </span>
+              </a>
+            ) : (
+              <a
+                href="/time-card"
+                className="flex w-full items-center justify-between rounded-xl border-2 border-amber-500 px-4 py-4 text-xl font-semibold active:bg-amber-50 dark:active:bg-amber-950"
+              >
+                <span>Time card</span>
+                <span aria-hidden>→</span>
+              </a>
             )}
           </section>
 

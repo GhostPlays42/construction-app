@@ -56,6 +56,7 @@ export function FormEditor({
   const [name, setName] = useState(initial.name);
   const [frequency, setFrequency] = useState<Frequency>(initial.frequency);
   const [inReport, setInReport] = useState(initial.inDailyReport);
+  const [supervisorsOnly, setSupervisorsOnly] = useState(initial.supervisorsOnly);
   const [allJobs, setAllJobs] = useState(initial.allJobs);
   const [jobIds, setJobIds] = useState(new Set(initial.jobIds));
   const [questions, setQuestions] = useState<Draft[]>(
@@ -70,6 +71,7 @@ export function FormEditor({
     frequency,
     inDailyReport: inReport,
     allJobs,
+    supervisorsOnly,
     jobIds: [...jobIds].sort(),
     questions: questions.map(fromDraft),
   };
@@ -186,6 +188,27 @@ export function FormEditor({
             <span className="block text-base text-zinc-600 dark:text-zinc-400">
               It gets its own section.
               {frequency === "once_daily" && " A day it isn't sent shows as missing."}
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="mb-1 text-xl font-semibold">Who fills it in</legend>
+        <label className={row}>
+          <input
+            type="checkbox"
+            className={box}
+            checked={supervisorsOnly}
+            onChange={(e) => {
+              setSaved(false);
+              setSupervisorsOnly(e.target.checked);
+            }}
+          />
+          <span>
+            Supervisors only
+            <span className="block text-base text-zinc-600 dark:text-zinc-400">
+              Other workers don&apos;t see it. Make someone a supervisor in People.
             </span>
           </span>
         </label>

@@ -11,7 +11,7 @@ export default async function PeoplePage() {
   const { supabase } = await requireAdmin();
   const { data: people, error } = await supabase
     .from("employees")
-    .select("id, full_name, phone, email, trade, is_active, user_id, roles(name, is_admin), certifications(expires_on)")
+    .select("id, full_name, phone, email, trade, is_active, user_id, roles(name, is_admin, is_supervisor), certifications(expires_on)")
     .order("full_name");
 
   const rows = (people ?? []).map((p) => {
@@ -33,7 +33,7 @@ export default async function PeoplePage() {
       >
         <span className="text-xl font-semibold">{p.full_name}</span>
         <span className="text-base text-zinc-600 dark:text-zinc-400">
-          {[p.roles?.is_admin ? p.roles.name : null, p.trade, p.phone ? formatPhone(p.phone) : p.email]
+          {[p.roles?.is_admin || p.roles?.is_supervisor ? p.roles.name : null, p.trade, p.phone ? formatPhone(p.phone) : p.email]
             .filter(Boolean)
             .join(" · ")}
         </span>

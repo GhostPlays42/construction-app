@@ -10,6 +10,7 @@ export type FormInput = {
   frequency: Frequency;
   inDailyReport: boolean;
   allJobs: boolean;
+  supervisorsOnly: boolean;
   jobIds: string[];
   questions: Question[];
 };
@@ -30,6 +31,7 @@ export async function saveForm(id: string | null, input: FormInput): Promise<{ e
     p_all_jobs: input.allJobs,
     p_job_ids: input.allJobs ? [] : input.jobIds,
     p_questions: tidyQuestions(input.questions) as unknown as Json,
+    p_supervisors_only: input.supervisorsOnly,
   });
   if (error || !data) return { error: formSaveMessage(error?.message ?? "") };
 

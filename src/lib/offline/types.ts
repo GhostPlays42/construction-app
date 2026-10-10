@@ -5,6 +5,9 @@ export type WorkerSnapshot = {
   userId: string;
   employeeId: string;
   firstName: string;
+  // Supervisors run the safety meeting and see supervisor-only forms.
+  // Missing on older copies.
+  isSupervisor?: boolean;
   companyName: string;
   // Missing on copies saved before site photos existed.
   companyId?: string;
@@ -15,7 +18,7 @@ export type WorkerSnapshot = {
   flhas: { id: string; job_id: string; work_date: string; filled_at: string }[];
   // This worker's recent time cards, so they can see and change them.
   timeCards: TimeCardCopy[];
-  // Recent safety meetings on the worker's jobs, run by anyone on the crew.
+  // Recent safety meetings on the worker's jobs, run by a supervisor.
   safetyMeetings: { id: string; job_id: string; work_date: string; filled_at: string; led_by_name: string }[];
   // This worker's recent site photos & notes. Missing on older copies.
   siteEntries?: { id: string; job_id: string; work_date: string; filled_at: string }[];

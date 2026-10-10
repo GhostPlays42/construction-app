@@ -5,7 +5,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 
 import { formatDate, formatTime, todayISO } from "@/lib/dates";
-import { flhaStatus, safetyStatus, todaysJob, useOnPhone, usePick } from "@/lib/offline/today";
+import { safetyStatus, todaysJob, useOnPhone, usePick } from "@/lib/offline/today";
 import type { WorkerSnapshot } from "@/lib/offline/types";
 import { useWorkerData } from "@/lib/offline/use-worker-data";
 import { SafetyForm } from "./safety-form";
@@ -18,8 +18,6 @@ export function SafetyScreen({ initial }: { initial: WorkerSnapshot }) {
   const ready = useOnPhone();
 
   const { job } = todaysJob(snapshot, today, pick);
-  const flha = job ? flhaStatus(snapshot, outbox, job.id, today) : null;
-  const flhaDone = flha?.state === "sent" || flha?.state === "waiting";
   const meeting = job ? safetyStatus(snapshot, outbox, job.id, today) : null;
 
   return (
@@ -30,21 +28,20 @@ export function SafetyScreen({ initial }: { initial: WorkerSnapshot }) {
           Home
         </a>
       </div>
-      {!ready ? null : !job ? (
+      {!ready ? null : !snapshot.isSupervisor ? (
+        <p className="text-lg">
+          Your supervisor runs the safety meeting.{" "}
+          <a href="/" className="underline">
+            Back home
+          </a>
+        </p>
+      ) : !job ? (
         <p className="text-lg">
           Pick today&apos;s job on your{" "}
           <a href="/" className="underline">
             home screen
           </a>{" "}
           first.
-        </p>
-      ) : !flhaDone ? (
-        <p className="text-lg">
-          Do your{" "}
-          <a href="/flha" className="underline">
-            FLHA
-          </a>{" "}
-          for {job.name} first.
         </p>
       ) : meeting?.state === "sent" || meeting?.state === "waiting" ? (
         <p className="text-lg">

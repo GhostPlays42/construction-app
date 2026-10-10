@@ -531,13 +531,13 @@ isOneToOne: false
                   ]
                 },"forms": {
                   Row: {
-                    "all_jobs": boolean,"company_id": string,"created_at": string,"frequency": string,"id": string,"in_daily_report": boolean,"is_active": boolean,"name": string
+                    "all_jobs": boolean,"company_id": string,"created_at": string,"frequency": string,"id": string,"in_daily_report": boolean,"is_active": boolean,"name": string,"supervisors_only": boolean
                   }
                   Insert: {
-                    "all_jobs"?: boolean,"company_id": string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name": string
+                    "all_jobs"?: boolean,"company_id": string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name": string,"supervisors_only"?: boolean
                   }
                   Update: {
-                    "all_jobs"?: boolean,"company_id"?: string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name"?: string
+                    "all_jobs"?: boolean,"company_id"?: string,"created_at"?: string,"frequency"?: string,"id"?: string,"in_daily_report"?: boolean,"is_active"?: boolean,"name"?: string,"supervisors_only"?: boolean
                   }
                   Relationships: [
                     {
@@ -689,13 +689,13 @@ isOneToOne: false
                   ]
                 },"roles": {
                   Row: {
-                    "created_at": string,"is_admin": boolean,"key": string,"name": string
+                    "created_at": string,"is_admin": boolean,"is_supervisor": boolean,"key": string,"name": string
                   }
                   Insert: {
-                    "created_at"?: string,"is_admin"?: boolean,"key": string,"name": string
+                    "created_at"?: string,"is_admin"?: boolean,"is_supervisor"?: boolean,"key": string,"name": string
                   }
                   Update: {
-                    "created_at"?: string,"is_admin"?: boolean,"key"?: string,"name"?: string
+                    "created_at"?: string,"is_admin"?: boolean,"is_supervisor"?: boolean,"key"?: string,"name"?: string
                   }
                   Relationships: [
                     
@@ -1105,7 +1105,7 @@ isOneToOne: false
 { Args: { "p_date": string,"p_equipment": (string)[],"p_job_id": string,"p_notes": string,"p_people": (string)[],"p_start_time": string }; Returns: undefined
                            },
 "save_form":
-{ Args: { "p_all_jobs": boolean,"p_frequency": string,"p_id": string,"p_in_daily_report": boolean,"p_job_ids": (string)[],"p_name": string,"p_questions": Json }; Returns: string
+{ Args: { "p_all_jobs": boolean,"p_frequency": string,"p_id": string,"p_in_daily_report": boolean,"p_job_ids": (string)[],"p_name": string,"p_questions": Json,"p_supervisors_only"?: boolean }; Returns: string
                            },
 "save_push_subscription":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string }; Returns: undefined

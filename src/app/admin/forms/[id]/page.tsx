@@ -23,7 +23,7 @@ export default async function FormPage({
   const [{ data: form }, { data: latest }] = await Promise.all([
     supabase
       .from("forms")
-      .select("id, name, frequency, in_daily_report, all_jobs, is_active, form_jobs(job_id)")
+      .select("id, name, frequency, in_daily_report, all_jobs, supervisors_only, is_active, form_jobs(job_id)")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -86,6 +86,7 @@ export default async function FormPage({
           frequency: form.frequency as Frequency,
           inDailyReport: form.in_daily_report,
           allJobs: form.all_jobs,
+          supervisorsOnly: form.supervisors_only,
           jobIds: onForm,
           questions: latest.questions as Question[],
         }}

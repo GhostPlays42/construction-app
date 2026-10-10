@@ -20,7 +20,7 @@ export default async function NewFormPage() {
       </div>
       <FormEditor
         formId={null}
-        initial={{ name: "", frequency: "many", inDailyReport: false, allJobs: false, jobIds: [], questions: [] }}
+        initial={{ name: "", frequency: "many", inDailyReport: false, allJobs: false, supervisorsOnly: false, jobIds: [], questions: [] }}
         jobs={jobs}
         version={0}
         sentOnVersion={0}

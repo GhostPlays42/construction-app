@@ -9,7 +9,7 @@ export default async function FormsPage() {
   const { supabase } = await requireAdmin();
   const { data: forms, error } = await supabase
     .from("forms")
-    .select("id, name, frequency, in_daily_report, all_jobs, is_active, form_jobs(count), form_versions(version)")
+    .select("id, name, frequency, in_daily_report, all_jobs, supervisors_only, is_active, form_jobs(count), form_versions(version)")
     .order("name");
 
   const rows = (forms ?? []).map((f) => ({
@@ -34,6 +34,7 @@ export default async function FormsPage() {
         {[
           FREQUENCIES.find((x) => x.value === f.frequency)?.label,
           f.all_jobs ? "All jobs" : f.jobs === 0 ? "No jobs yet" : f.jobs === 1 ? "1 job" : `${f.jobs} jobs`,
+          f.supervisors_only && "Supervisors only",
           f.in_daily_report && "In daily report",
         ]
           .filter(Boolean)
