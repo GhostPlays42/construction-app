@@ -42,6 +42,68 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"chat_messages": {
+                  Row: {
+                    "body": string | null,"company_id": string,"created_at": string,"employee_id": string,"id": string,"job_id": string,"notified_at": string | null,"photo_path": string | null,"removed_at": string | null,"removed_by": string | null,"sender_name": string
+                  }
+                  Insert: {
+                    "body"?: string | null,"company_id": string,"created_at"?: string,"employee_id": string,"id": string,"job_id": string,"notified_at"?: string | null,"photo_path"?: string | null,"removed_at"?: string | null,"removed_by"?: string | null,"sender_name": string
+                  }
+                  Update: {
+                    "body"?: string | null,"company_id"?: string,"created_at"?: string,"employee_id"?: string,"id"?: string,"job_id"?: string,"notified_at"?: string | null,"photo_path"?: string | null,"removed_at"?: string | null,"removed_by"?: string | null,"sender_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_messages_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "chat_messages_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "chat_messages_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "chat_messages_company_id_removed_by_fkey"
+      columns: ["company_id","removed_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"chat_reads": {
+                  Row: {
+                    "company_id": string,"employee_id": string,"job_id": string,"read_at": string
+                  }
+                  Insert: {
+                    "company_id": string,"employee_id": string,"job_id": string,"read_at"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"employee_id"?: string,"job_id"?: string,"read_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "chat_reads_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "chat_reads_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 },"companies": {
                   Row: {
                     "created_at": string,"id": string,"name": string,"status": string,"updated_at": string
@@ -871,6 +933,16 @@ isOneToOne: false
             "approve_time_card":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"chat_message_targets":
+{ Args: { "p_id": string }; Returns: {
+              "auth": string,"endpoint": string,"p256dh": string
+            }[]
+                           },
+"chat_unread":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "job_id": string,"unread": number
+            }[]
+                           },
 "check_trucking_slip":
 { Args: { "p_id": string,"p_loads": number,"p_material": string,"p_slip_date": string,"p_ticket_number": string,"p_tonnage": number,"p_truck_number": string,"p_trucking_company": string }; Returns: undefined
                            },
@@ -893,10 +965,16 @@ isOneToOne: false
 "hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
                            },
+"mark_chat_read":
+{ Args: { "p_job_id": string }; Returns: undefined
+                           },
 "my_job_crews":
 { Args: Record<PropertyKey, never>; Returns: {
               "employee_id": string,"full_name": string,"job_id": string
             }[]
+                           },
+"remove_chat_message":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "remove_push_subscriptions":
 { Args: { "p_endpoints": (string)[] }; Returns: undefined
@@ -909,6 +987,9 @@ isOneToOne: false
                            },
 "save_trucking_slip_reading":
 { Args: { "p_id": string,"p_values": Json }; Returns: undefined
+                           },
+"send_chat_message":
+{ Args: { "p_body": string,"p_id": string,"p_job_id": string,"p_photo": boolean }; Returns: string
                            },
 "send_schedule":
 { Args: Record<PropertyKey, never>; Returns: string[]

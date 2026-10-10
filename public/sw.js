@@ -43,8 +43,23 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fromCacheFirst(request));
   } else if (request.mode === "navigate" && OFFLINE_PATHS.includes(url.pathname) && !url.search) {
     event.respondWith(fromNetworkFirst(url.pathname));
+  } else if (request.mode === "navigate" && url.pathname.startsWith("/chat/")) {
+    // Chat needs signal; say so instead of the browser's error page.
+    event.respondWith(
+      fetch(request).catch(() => noSignal("Job chat needs signal. Your forms still work without it.")),
+    );
   }
 });
+
+function noSignal(message) {
+  return new Response(
+    '<!doctype html><meta name="viewport" content="width=device-width"><title>No signal</title>' +
+      '<body style="font:18px system-ui;padding:24px"><h1>No signal</h1><p>' +
+      message +
+      '</p><p><a href="/">Back to home</a></p></body>',
+    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
 
 async function fromCacheFirst(request) {
   const cache = await caches.open(STATIC);
@@ -71,12 +86,7 @@ async function fromNetworkFirst(path) {
   try {
     return await network;
   } catch {
-    return new Response(
-      '<!doctype html><meta name="viewport" content="width=device-width"><title>No signal</title>' +
-        '<body style="font:18px system-ui;padding:24px"><h1>No signal</h1>' +
-        "<p>Open the app once with signal so it can work without it.</p></body>",
-      { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
-    );
+    return noSignal("Open the app once with signal so it can work without it.");
   }
 }
 
@@ -140,6 +150,8 @@ self.addEventListener("push", (event) => {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
+      tag: typeof data.tag === "string" ? data.tag : undefined,
+      renotify: typeof data.tag === "string",
       data: { url: typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/" },
     }),
   );
