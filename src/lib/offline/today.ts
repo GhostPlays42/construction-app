@@ -5,13 +5,25 @@ import type { OutboxItem, TimeCardPayload, WorkerSnapshot } from "./types";
 
 type Job = WorkerSnapshot["jobs"][number];
 
-// Until dispatch exists, today's jobs are the worker's active jobs that have
-// started. With several, the worker's pick for today (kept on the phone)
-// decides.
+// Today's jobs are the worker's active jobs that have started. The job the
+// office sent them to today comes first and is picked for them; with several
+// (or none sent), the worker's pick for today (kept on the phone) decides.
+// Saved as the pick while the worker is choosing another job.
+export const SWITCHING = "switching";
+
 export function todaysJob(snapshot: WorkerSnapshot, today: string, pick: string | null) {
-  const jobs = snapshot.jobs.filter((j) => !j.start_date || j.start_date <= today);
-  const job: Job | undefined = jobs.length === 1 ? jobs[0] : jobs.find((j) => j.id === pick);
-  return { jobs, job };
+  const sent = (snapshot.schedule ?? []).filter((s) => s.work_date === today);
+  const started = snapshot.jobs.filter((j) => !j.start_date || j.start_date <= today);
+  const isSent = (j: Job) => sent.some((s) => s.job_id === j.id);
+  const jobs = [...started.filter(isSent), ...started.filter((j) => !isSent(j))];
+  const dispatched = jobs.filter(isSent);
+  const job: Job | undefined =
+    pick === SWITCHING
+      ? undefined
+      : (jobs.find((j) => j.id === pick) ??
+        (dispatched.length === 1 ? dispatched[0] : dispatched.length === 0 && jobs.length === 1 ? jobs[0] : undefined));
+  const plan = job ? sent.find((s) => s.job_id === job.id) : undefined;
+  return { jobs, job, plan, dispatched: dispatched.map((j) => j.id) };
 }
 
 const pickKey = (userId: string) => `job_pick:${userId}`;

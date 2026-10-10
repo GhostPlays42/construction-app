@@ -17,13 +17,16 @@ import {
   safetyStatus,
   savePick,
   sitePhotosToday,
+  SWITCHING,
   slipsToday,
   timeCardFor,
   todaysJob,
   usePick,
 } from "@/lib/offline/today";
+import { shortDay, startTime } from "@/lib/dispatch";
 import type { OutboxItem, WorkerSnapshot } from "@/lib/offline/types";
 import { useWorkerData } from "@/lib/offline/use-worker-data";
+import { Notifications } from "./notifications";
 import { SignOutButton } from "./sign-out-button";
 
 const FORM_NAMES: Record<OutboxItem["kind"], string> = {
@@ -45,12 +48,14 @@ const card = "flex flex-col gap-1 rounded-xl border-2 border-zinc-200 p-4 dark:b
 
 // The worker's home screen. It draws from the phone's copy of their job and
 // lists, so it works with no signal.
-export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
+export function WorkerHome({ initial, pushKey }: { initial: WorkerSnapshot; pushKey: string | null }) {
   const { snapshot, outbox, offline, signedOut, send } = useWorkerData(initial);
   const today = todayISO();
   const pick = usePick(initial.userId, today);
 
-  const { jobs, job } = todaysJob(snapshot, today, pick);
+  const { jobs, job, plan, dispatched } = todaysJob(snapshot, today, pick);
+  // Where the office has sent them after today.
+  const comingUp = (snapshot.schedule ?? []).filter((s) => s.work_date > today);
   const flha = job ? flhaStatus(snapshot, outbox, job.id, today) : null;
   const flhaDone = flha?.state === "sent" || flha?.state === "waiting";
   const timeCard = job ? timeCardFor(snapshot, outbox, job.id, today) : null;
@@ -163,6 +168,9 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
               className="flex w-full flex-col items-start gap-1 rounded-xl border-2 border-zinc-300 p-4 text-left active:bg-zinc-100 dark:border-zinc-700 dark:active:bg-zinc-900"
             >
               <span className="text-xl font-semibold">{j.name}</span>
+              {dispatched.includes(j.id) && (
+                <span className="text-base font-medium text-amber-700 dark:text-amber-400">The office sent you here today</span>
+              )}
               {(j.job_number || j.address) && (
                 <span className="text-base text-zinc-600 dark:text-zinc-400">
                   {[j.job_number && `#${j.job_number}`, j.address].filter(Boolean).join(" · ")}
@@ -177,6 +185,8 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
             <p className="text-base text-zinc-600 dark:text-zinc-400">Today&apos;s job</p>
             <h2 className="text-2xl font-bold">{job.name}</h2>
             {job.job_number && <p className="text-lg text-zinc-600 dark:text-zinc-400">#{job.job_number}</p>}
+            {plan?.start_time && <p className="text-lg font-semibold">Start {startTime(plan.start_time)}</p>}
+            {plan?.notes && <p className="whitespace-pre-line text-lg">Note from the office: {plan.notes}</p>}
             {job.address && (
               <>
                 <p className="text-lg">{job.address}</p>
@@ -193,7 +203,7 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
             {jobs.length > 1 && (
               <button
                 type="button"
-                onClick={() => choose(null)}
+                onClick={() => choose(SWITCHING)}
                 className="mt-2 self-start text-base text-zinc-600 underline dark:text-zinc-400"
               >
                 Switch job
@@ -342,6 +352,34 @@ export function WorkerHome({ initial }: { initial: WorkerSnapshot }) {
           </section>
         </>
       )}
+
+      {comingUp.length > 0 && (
+        <section className="flex flex-col gap-2" aria-label="Coming up">
+          <h2 className="text-xl font-semibold">Coming up</h2>
+          {comingUp.map((s) => (
+            <div key={`${s.work_date}-${s.job_id}`} className={card}>
+              <p className="text-base text-zinc-600 dark:text-zinc-400">{shortDay(s.work_date)}</p>
+              <p className="text-lg font-semibold">
+                {s.job_name}
+                {s.start_time && <span className="font-normal"> · Start {startTime(s.start_time)}</span>}
+              </p>
+              {s.address && (
+                <a
+                  href={mapLink(s.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-base text-amber-700 underline dark:text-amber-400"
+                >
+                  {s.address}
+                </a>
+              )}
+              {s.notes && <p className="whitespace-pre-line text-base">Note: {s.notes}</p>}
+            </div>
+          ))}
+        </section>
+      )}
+
+      <Notifications publicKey={pushKey} />
 
       <SignOutButton userId={initial.userId} waiting={waiting.length} />
     </main>
