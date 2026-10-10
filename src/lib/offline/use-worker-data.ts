@@ -16,7 +16,7 @@ function useServiceWorker() {
       .register("/sw.js")
       .then(() => navigator.serviceWorker.ready)
       .then((reg) => {
-        if (navigator.onLine) reg.active?.postMessage({ type: "warm", paths: ["/", "/flha", "/time-card", "/safety-meeting", "/site-photos"] });
+        if (navigator.onLine) reg.active?.postMessage({ type: "warm", paths: ["/", "/flha", "/time-card", "/safety-meeting", "/site-photos", "/trucking-slip"] });
       })
       .catch(() => {});
   }, []);

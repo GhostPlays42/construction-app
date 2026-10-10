@@ -644,6 +644,62 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"trucking_slip_changes": {
+                  Row: {
+                    "changed_at": string,"changed_by": string,"company_id": string,"field": string,"id": number,"new_value": string | null,"old_value": string | null,"slip_id": string
+                  }
+                  Insert: {
+                    "changed_at"?: string,"changed_by": string,"company_id": string,"field": string,"id"?: never,"new_value"?: string | null,"old_value"?: string | null,"slip_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"changed_by"?: string,"company_id"?: string,"field"?: string,"id"?: never,"new_value"?: string | null,"old_value"?: string | null,"slip_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trucking_slip_changes_company_id_changed_by_fkey"
+      columns: ["company_id","changed_by"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "trucking_slip_changes_company_id_slip_id_fkey"
+      columns: ["company_id","slip_id"]
+isOneToOne: false
+      referencedRelation: "trucking_slips"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"trucking_slips": {
+                  Row: {
+                    "checked_at": string | null,"company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"loads": number | null,"material": string | null,"photo_path": string,"read_at": string | null,"read_status": string,"read_values": Json | null,"slip_date": string | null,"status": string,"submitted_at": string,"ticket_number": string | null,"tonnage": number | null,"truck_number": string | null,"trucking_company": string | null,"work_date": string
+                  }
+                  Insert: {
+                    "checked_at"?: string | null,"company_id": string,"employee_id": string,"filled_at": string,"id": string,"job_id": string,"loads"?: number | null,"material"?: string | null,"photo_path": string,"read_at"?: string | null,"read_status"?: string,"read_values"?: Json | null,"slip_date"?: string | null,"status"?: string,"submitted_at"?: string,"ticket_number"?: string | null,"tonnage"?: number | null,"truck_number"?: string | null,"trucking_company"?: string | null,"work_date": string
+                  }
+                  Update: {
+                    "checked_at"?: string | null,"company_id"?: string,"employee_id"?: string,"filled_at"?: string,"id"?: string,"job_id"?: string,"loads"?: number | null,"material"?: string | null,"photo_path"?: string,"read_at"?: string | null,"read_status"?: string,"read_values"?: Json | null,"slip_date"?: string | null,"status"?: string,"submitted_at"?: string,"ticket_number"?: string | null,"tonnage"?: number | null,"truck_number"?: string | null,"trucking_company"?: string | null,"work_date"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trucking_slips_company_id_employee_id_fkey"
+      columns: ["company_id","employee_id"]
+isOneToOne: false
+      referencedRelation: "employees"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "trucking_slips_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "trucking_slips_company_id_job_id_fkey"
+      columns: ["company_id","job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -653,6 +709,9 @@ isOneToOne: false
             "approve_time_card":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"check_trucking_slip":
+{ Args: { "p_id": string,"p_loads": number,"p_material": string,"p_slip_date": string,"p_ticket_number": string,"p_tonnage": number,"p_truck_number": string,"p_trucking_company": string }; Returns: undefined
+                           },
 "hook_before_user_created":
 { Args: { "event": Json }; Returns: Json
                            },
@@ -660,6 +719,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "employee_id": string,"full_name": string,"job_id": string
             }[]
+                           },
+"save_trucking_slip_reading":
+{ Args: { "p_id": string,"p_values": Json }; Returns: undefined
                            },
 "set_job_crew":
 { Args: { "p_employee_ids": (string)[],"p_job_id": string }; Returns: undefined
@@ -679,8 +741,14 @@ isOneToOne: false
 "submit_time_card":
 { Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_filled_at"?: string,"p_id": string,"p_job_id": string,"p_lines": Json,"p_start": string,"p_work_date": string }; Returns: string
                            },
+"submit_trucking_slip":
+{ Args: { "p_filled_at"?: string,"p_id": string,"p_job_id": string }; Returns: string
+                           },
 "update_time_card":
 { Args: { "p_break": number,"p_end": string,"p_equipment": Json,"p_id": string,"p_lines": Json,"p_start": string }; Returns: undefined
+                           },
+"update_trucking_slip":
+{ Args: { "p_id": string,"p_loads": number,"p_material": string,"p_slip_date": string,"p_ticket_number": string,"p_tonnage": number,"p_truck_number": string,"p_trucking_company": string }; Returns: undefined
                            }
           }
           Enums: {

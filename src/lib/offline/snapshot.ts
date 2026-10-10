@@ -5,7 +5,7 @@ import type { WorkerSnapshot } from "./types";
 
 // Everything a worker's screens need, in one go. Row level security limits
 // jobs (and their machines, crews and safety meetings) to the ones they're
-// assigned to, and FLHAs, time cards and site photos to their own. Returns null
+// assigned to, and FLHAs, time cards, site photos and slips to their own. Returns null
 // when the person has no access.
 export async function buildSnapshot(
   supabase: SupabaseClient<Database>,
@@ -19,7 +19,7 @@ export async function buildSnapshot(
   if (!me) return null;
 
   const since = addDays(todayISO(), -1);
-  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries] = await Promise.all([
+  const [jobs, flhas, cards, codes, hazards, ppe, machines, meetings, crews, entries, slips] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, name, job_number, address, start_date")
@@ -51,6 +51,12 @@ export async function buildSnapshot(
       .select("id, job_id, work_date, filled_at")
       .eq("employee_id", me.id)
       .gte("work_date", since),
+    supabase
+      .from("trucking_slips")
+      .select("id, job_id, work_date, filled_at, status, ticket_number")
+      .eq("employee_id", me.id)
+      .gte("work_date", since)
+      .order("filled_at"),
   ]);
   const failed =
     jobs.error ??
@@ -62,7 +68,8 @@ export async function buildSnapshot(
     machines.error ??
     meetings.error ??
     crews.error ??
-    entries.error;
+    entries.error ??
+    slips.error;
   if (failed) throw new Error(failed.message);
 
   const equipment = new Map<string, { id: string; name: string; job_ids: string[] }>();
@@ -100,6 +107,7 @@ export async function buildSnapshot(
     })),
     crews: crews.data ?? [],
     siteEntries: entries.data ?? [],
+    truckingSlips: (slips.data ?? []).map((s) => ({ ...s, status: s.status === "checked" ? "checked" : "unchecked" })),
     lists: {
       codes: codes.data ?? [],
       hazards: hazards.data ?? [],

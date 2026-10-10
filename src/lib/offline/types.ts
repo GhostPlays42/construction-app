@@ -17,6 +17,15 @@ export type WorkerSnapshot = {
   safetyMeetings: { id: string; job_id: string; work_date: string; filled_at: string; led_by_name: string }[];
   // This worker's recent site photos & notes. Missing on older copies.
   siteEntries?: { id: string; job_id: string; work_date: string; filled_at: string }[];
+  // This worker's recent trucking slips. Missing on older copies.
+  truckingSlips?: {
+    id: string;
+    job_id: string;
+    work_date: string;
+    filled_at: string;
+    status: "unchecked" | "checked";
+    ticket_number: string | null;
+  }[];
   // Who is on each of the worker's active jobs, for the safety meeting sign-off.
   crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {
@@ -97,12 +106,23 @@ export type SitePhotosPayload = {
   photos: { id: string; blob: Blob; costCodeId: string | null; caption: string; uploaded?: boolean }[];
 };
 
+export type TruckingSlipPayload = {
+  jobId: string;
+  jobName: string;
+  companyId: string;
+  workDate: string;
+  filledAt: string;
+  // Shrunk on the phone; "uploaded" once it reaches storage.
+  photo: { blob: Blob; uploaded?: boolean };
+};
+
 // A form saved on the phone that hasn't reached the office yet.
 export type OutboxItem = (
   | { kind: "flha"; payload: FlhaPayload }
   | { kind: "time-card"; payload: TimeCardPayload }
   | { kind: "safety-meeting"; payload: SafetyMeetingPayload }
   | { kind: "site-photos"; payload: SitePhotosPayload }
+  | { kind: "trucking-slip"; payload: TruckingSlipPayload }
 ) & {
   id: string;
   userId: string;

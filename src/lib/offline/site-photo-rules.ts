@@ -43,10 +43,10 @@ export function photoPath(companyId: string, entryId: string, photoId: string) {
 const LONG_SIDE = 1600;
 const QUALITY = 0.8;
 
-export async function shrinkPhoto(file: Blob): Promise<Blob> {
+export async function shrinkPhoto(file: Blob, longSide = LONG_SIDE): Promise<Blob> {
   // Browsers turn the photo upright from the camera's orientation tag here.
   const image = await createImageBitmap(file);
-  const scale = Math.min(1, LONG_SIDE / Math.max(image.width, image.height));
+  const scale = Math.min(1, longSide / Math.max(image.width, image.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(image.width * scale);
   canvas.height = Math.round(image.height * scale);
