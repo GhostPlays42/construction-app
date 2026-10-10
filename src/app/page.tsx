@@ -117,6 +117,12 @@ export default async function Home() {
         Safety meetings
       </Link>
       <Link
+        href="/admin/site-photos"
+        className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
+      >
+        Site photos
+      </Link>
+      <Link
         href="/admin/time-cards"
         className="w-full rounded-xl bg-amber-500 px-4 py-4 text-center text-xl font-semibold text-black active:bg-amber-600"
       >

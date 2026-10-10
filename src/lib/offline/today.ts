@@ -158,3 +158,20 @@ export function safetyStatus(
   if (failed) return { state: "failed", error: failed.error ?? "", itemId: failed.id };
   return null;
 }
+
+// How many site photos & notes this worker has sent for a job today, and how
+// many are saved on the phone waiting to send or stuck.
+export function sitePhotosToday(snapshot: WorkerSnapshot, outbox: OutboxItem[], jobId: string, today: string) {
+  const sentIds = new Set(
+    (snapshot.siteEntries ?? []).filter((e) => e.job_id === jobId && e.work_date === today).map((e) => e.id),
+  );
+  const mine = outbox.filter(
+    (i) => i.kind === "site-photos" && i.payload.jobId === jobId && i.payload.workDate === today,
+  );
+  for (const i of mine) if (i.status === "sent") sentIds.add(i.id);
+  return {
+    sent: sentIds.size,
+    waiting: mine.filter((i) => i.status === "waiting").length,
+    failed: mine.filter((i) => i.status === "failed").length,
+  };
+}

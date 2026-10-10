@@ -4,6 +4,8 @@ export type WorkerSnapshot = {
   employeeId: string;
   firstName: string;
   companyName: string;
+  // Missing on copies saved before site photos existed.
+  companyId?: string;
   // When this copy came from the server.
   fetchedAt: string;
   jobs: { id: string; name: string; job_number: string | null; address: string | null; start_date: string | null }[];
@@ -13,6 +15,8 @@ export type WorkerSnapshot = {
   timeCards: TimeCardCopy[];
   // Recent safety meetings on the worker's jobs, run by anyone on the crew.
   safetyMeetings: { id: string; job_id: string; work_date: string; filled_at: string; led_by_name: string }[];
+  // This worker's recent site photos & notes. Missing on older copies.
+  siteEntries?: { id: string; job_id: string; work_date: string; filled_at: string }[];
   // Who is on each of the worker's active jobs, for the safety meeting sign-off.
   crews: { job_id: string; employee_id: string; full_name: string }[];
   lists: {
@@ -80,11 +84,25 @@ export type SafetyMeetingPayload = {
   attendees: { employee_id: string; signature: string | null }[];
 };
 
+export type SitePhotosPayload = {
+  jobId: string;
+  jobName: string;
+  // Photos are stored in this company's folder.
+  companyId: string;
+  workDate: string;
+  filledAt: string;
+  notes: string;
+  // Shrunk on the phone. "uploaded" is set once a photo reaches storage, so a
+  // retry doesn't send it again.
+  photos: { id: string; blob: Blob; costCodeId: string | null; caption: string; uploaded?: boolean }[];
+};
+
 // A form saved on the phone that hasn't reached the office yet.
 export type OutboxItem = (
   | { kind: "flha"; payload: FlhaPayload }
   | { kind: "time-card"; payload: TimeCardPayload }
   | { kind: "safety-meeting"; payload: SafetyMeetingPayload }
+  | { kind: "site-photos"; payload: SitePhotosPayload }
 ) & {
   id: string;
   userId: string;

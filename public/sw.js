@@ -9,7 +9,7 @@
 
 const PAGES = "pages-v1";
 const STATIC = "static-v1";
-const OFFLINE_PATHS = ["/", "/flha", "/time-card", "/safety-meeting"];
+const OFFLINE_PATHS = ["/", "/flha", "/time-card", "/safety-meeting", "/site-photos"];
 const MARKER = "data-offline-page";
 // On a weak signal, wait this long for the server before using the phone's copy.
 const NETWORK_WAIT_MS = 6000;
